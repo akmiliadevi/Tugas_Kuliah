@@ -45,6 +45,7 @@ local UnlockFPS = SecurityLoader.LoadModule("UnlockFPS")
 local FPSBooster = SecurityLoader.LoadModule("FPSBooster")
 local AutoBuyWeather = SecurityLoader.LoadModule("AutoBuyWeather")
 local Notify = SecurityLoader.LoadModule("Notify")
+local GoodPerfectionStable = SecurityLoader.LoadModule("GoodPerfectionStable")
 
 -- Continue with rest of your GUI code...
 print("✅ All modules loaded securely!")
@@ -1375,6 +1376,16 @@ makeToggle(catSupport, "Walk On Water", function(on)
     else
         WalkOnWater.Stop()
         Notify.Send("Walk On Water", "Walk on water dimatikan.", 3)
+    end
+end)
+
+makeToggle(catSupport, "Good/Perfection Stable Mode", function(on)
+    if on then
+        GoodPerfectionStable.Start()
+        Notify.Send("Good/Perfection Stable", "Fitur dihidupkan!", 4)
+    else
+        GoodPerfectionStable.Stop()
+        Notify.Send("Good/Perfection Stable", "Fitur dimatikan!", 4)
     end
 end)
 
