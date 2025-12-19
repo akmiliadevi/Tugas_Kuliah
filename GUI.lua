@@ -2371,6 +2371,15 @@ makeToggle(catAFK, "Enable Anti-AFK", function(on)
     end
 end)
 
+-- ==== SERVER MANAGEMENT ====
+local catServer = makeCategory(settingsPage, "Server Features", "🔄")
+
+makeButton(catServer, "🔄 Rejoin Server", function()
+    if RejoinModule then
+        RejoinModule.Execute()
+    end
+end)
+
 -- ==== FPS BOOSTER CATEGORY ====
 local catBoost = makeCategory(settingsPage, "FPS Booster", "⚡")
 
@@ -2399,14 +2408,7 @@ makeDropdown(catFPS, "Select FPS Limit", "⚙️", {"60 FPS", "90 FPS", "120 FPS
     end
 end, "FPSDropdown")
 
--- ==== SERVER MANAGEMENT ====
-local catServer = makeCategory(settingsPage, "Server Features", "🔄")
 
-makeButton(catServer, "🔄 Rejoin Server", function()
-    if RejoinModule then
-        RejoinModule.Execute()
-    end
-end)
 
 -- ==== INTEGRASI HIDE STATS MODULE ====
 -- Letakkan kode ini di bagian atas file GUI utama Anda (setelah deklarasi variabel utama)
