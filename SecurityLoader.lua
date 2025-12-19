@@ -187,7 +187,7 @@ function SecurityLoader.LoadModule(moduleName)
 end
 
 -- ============================================
--- ANTI-DUMP PROTECTION
+-- ANTI-DUMP PROTECTION (COMPATIBLE VERSION)
 -- ============================================
 function SecurityLoader.EnableAntiDump()
     local mt = getrawmetatable(game)
@@ -197,24 +197,38 @@ function SecurityLoader.EnableAntiDump()
     end
     
     local oldNamecall = mt.__namecall
-    setreadonly(mt, false)
     
-    mt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
+    -- Check if newcclosure is available
+    local hasNewcclosure = pcall(function() return newcclosure end) and newcclosure
+    
+    local success = pcall(function()
+        setreadonly(mt, false)
         
-        if method == "HttpGet" or method == "GetObjects" then
-            local caller = getcallingscript()
-            if caller and caller ~= script then
-                warn("🚫 Blocked unauthorized HTTP request")
-                return ""
+        local protectedCall = function(self, ...)
+            local method = getnamecallmethod()
+            
+            if method == "HttpGet" or method == "GetObjects" then
+                local caller = getcallingscript and getcallingscript()
+                if caller and caller ~= script then
+                    warn("🚫 Blocked unauthorized HTTP request")
+                    return ""
+                end
             end
+            
+            return oldNamecall(self, ...)
         end
         
-        return oldNamecall(self, ...)
+        -- Use newcclosure if available, otherwise use regular function
+        mt.__namecall = hasNewcclosure and newcclosure(protectedCall) or protectedCall
+        
+        setreadonly(mt, true)
     end)
     
-    setreadonly(mt, true)
-    print("🛡️ Anti-Dump Protection: ACTIVE")
+    if success then
+        print("🛡️ Anti-Dump Protection: ACTIVE")
+    else
+        warn("⚠️ Anti-Dump: Failed to apply (executor limitation)")
+    end
 end
 
 -- ============================================
