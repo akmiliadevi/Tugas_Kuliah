@@ -2399,16 +2399,12 @@ makeDropdown(catFPS, "Select FPS Limit", "⚙️", {"60 FPS", "90 FPS", "120 FPS
     end
 end, "FPSDropdown")
 
--- Category untuk Rejoin
-local catRejoin = makeCategory(settingsPage, "Server Features", "🔄") -- Atau gunakan page lain seperti miscPage
+-- ==== SERVER MANAGEMENT ====
+local catServer = makeCategory(settingsPage, "Server Features", "🔄")
 
--- Button Rejoin
-makeButton(catRejoin, "Rejoin Server", function()
-    if RejoinModule and RejoinModule.Execute then
-        print("Executing rejoin...")
+makeButton(catServer, "🔄 Rejoin Server", function()
+    if RejoinModule then
         RejoinModule.Execute()
-    else
-        warn("Rejoin module not loaded!")
     end
 end)
 
