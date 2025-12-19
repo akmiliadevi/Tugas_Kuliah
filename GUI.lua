@@ -1547,7 +1547,7 @@ end)
 --Events Teleport
 local selectedEventName = nil
 
-local EventTeleport = SecurityLoader.LoadModule("EventTeleportDynamic")
+local EventTeleport = SecurityLoader.LoadModule("EventTeleport")
 
 if not EventTeleport then
     warn("⚠️ EventTeleportDynamic module failed to load")
