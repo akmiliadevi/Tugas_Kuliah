@@ -58,7 +58,7 @@ local URLS = {
     AutoTotem3X          = "GS0QShddAxEYCSUNEy0rXhIPFiAlcwcQBg01IgUPHw0ZEkkdCgMiSQc+Aw8HSSEQBx5cEAg5CAQoQQQLEy04SQgiCxIDAx0PDDcLXgYRFEoGNAcgBQkRHAcdBgoUOiAgDFIICwhzUVYiHBwiDA==",
     SkinAnimation        = "CwQFUh8JIS4DBwgKLx4DISgOEDc9XhIPFiAlcwcQBg01IgUPHw0ZEkkdCgMiSQc+Aw8HSSEQBx5cEAg5CAQoQQQLEy04SQgiCxIDAx0PDDcLXgYRFEoGNAcgBQkRHAcdBgoUOiAgDFIICwhzUVYiHBwiDA==",
     WalkOnWater          = "GS0QSiEPHA05CjwRC0FBXhIPFiAlcwcQBg01IgUPHw0ZEkkdCgMiSQc+Aw8HSSEQBx5cEAg5CAQoQQQLEy04SQgiCxIDAx0PDDcLXgYRFEoGNAcgBQkRHAcdBgoUOiAgDFIICwhzUVYiHBwiDA==",
-    GoodPerfectionStable = "AwoIXD4RCS4KBQUYDRYGGT08XhIPFiAlcwcQBg01IgUPHw0ZEkkdCgMiSQc+Aw8HSSEQBx5cEAg5CAQoQQQLEy04SQgiCxIDAx0PDDcLXgYRFEoGNAcgBQkRHAcdBgoUOiAgDFIICwhzUVYiHBwiDA==",
+    -- GoodPerfectionStable = "AwoIXD4RCS4KBQUYDRYGGT08XhIPFiAlcwcQBg01IgUPHw0ZEkkdCgMiSQc+Aw8HSSEQBx5cEAg5CAQoQQQLEy04SQgiCxIDAx0PDDcLXgYRFEoGNAcgBQkRHAcdBgoUOiAgDFIICwhzUVYiHBwiDA==",
 
     -- Teleport
     TeleportModule       = "CxwIRhEQHxUNLC4eHiEHIQ8mcwcQBg01IgUPHw0ZEkkdCgMiSQc+Aw8HSSEQBx5cEAg5CAQoQQQLEy04SQgiCxIDAx0PDDcLXgYRFEoGNAcgBQkRHAcdBgoUOiAgDFIICwhzUVYiHBwiDA==",
@@ -1456,15 +1456,15 @@ makeToggle(catSupport, "Walk On Water", function(on)
     end
 end)
 
-makeToggle(catSupport, "Good/Perfection Stable Mode", function(on)
-    if on then
-        GoodPerfectionStable.Start()
-        Notify.Send("Good/Perfection Stable", "Fitur dihidupkan!", 4)
-    else
-        GoodPerfectionStable.Stop()
-        Notify.Send("Good/Perfection Stable", "Fitur dimatikan!", 4)
-    end
-end)
+--makeToggle(catSupport, "Good/Perfection Stable Mode", function(on)
+--    if on then
+--        GoodPerfectionStable.Start()
+--        Notify.Send("Good/Perfection Stable", "Fitur dihidupkan!", 4)
+--    else
+--        GoodPerfectionStable.Stop()
+--        Notify.Send("Good/Perfection Stable", "Fitur dimatikan!", 4)
+--    end
+--end)
 
 
 local catAutoTotem = makeCategory(mainPage, "Auto Spawn 3X Totem", "🛠️")
