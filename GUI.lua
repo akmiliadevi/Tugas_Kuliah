@@ -30,8 +30,34 @@ local function decrypt(enc)
     return table.concat(out)
 end
 
+-- ⬇️ GANTI FUNGSI INI (BARIS 42-44)
 local function LoadEncrypted(enc)
-    return loadstring(game:HttpGet(decrypt(enc)))()
+    local success, decryptedUrl = pcall(function()
+        return decrypt(enc)
+    end)
+    
+    if not success then
+        warn("❌ Dekripsi gagal:", decryptedUrl)
+        return nil
+    end
+    
+    if not decryptedUrl or decryptedUrl == "" then
+        warn("❌ URL dekripsi kosong!")
+        return nil
+    end
+    
+    print("✅ Decrypted URL:", decryptedUrl)
+    
+    local success2, result = pcall(function()
+        return loadstring(game:HttpGet(decryptedUrl))()
+    end)
+    
+    if not success2 then
+        warn("❌ Load module gagal:", result)
+        return nil
+    end
+    
+    return result
 end
 
 -- ============================================
@@ -103,47 +129,72 @@ local function new(class, props)
 end
 
 -- ============================================
--- LOAD MODULES
+-- LOAD MODULES WITH ERROR HANDLING
 -- ============================================
 
-local instant              = LoadEncrypted(URLS.Instant)
-local instant2             = LoadEncrypted(URLS.Instant2)
-local blatantv1            = LoadEncrypted(URLS.BlatantV1)
-local UltraBlatant         = LoadEncrypted(URLS.BlatantV2)
-local blatantv2            = LoadEncrypted(URLS.BlatantV2old)
-local blatantv2fix         = LoadEncrypted(URLS.BlatantV2Fix)
+local function SafeLoadModule(name, encryptedUrl)
+    local success, module = pcall(function()
+        return LoadEncrypted(encryptedUrl)
+    end)
+    
+    if success and module then
+        print("✅ Module loaded:", name)
+        return module
+    else
+        warn("❌ Failed to load module:", name, module)
+        -- Return dummy module untuk prevent crash
+        return {
+            Start = function() 
+                warn(name .. " not loaded") 
+            end,
+            Stop = function() end,
+            Settings = {},
+            UpdateSettings = function() end,
+            Enable = function() end,
+            Disable = function() end,
+            IsRunning = function() return false end
+        }
+    end
+end
 
-local NoFishingAnimation   = LoadEncrypted(URLS.NoFishingAnimation)
-local LockPosition         = LoadEncrypted(URLS.LockPosition)
-local AutoEquipRod         = LoadEncrypted(URLS.AutoEquipRod)
-local DisableCutscenes     = LoadEncrypted(URLS.DisableCutscenes)
-local DisableExtras        = LoadEncrypted(URLS.DisableExtras)
-local AutoTotem3X          = LoadEncrypted(URLS.AutoTotem3X)
-local SkinAnimation        = LoadEncrypted(URLS.SkinAnimation)
-local WalkOnWater          = LoadEncrypted(URLS.WalkOnWater)
--- local GoodPerfectionStable = LoadEncrypted(URLS.GoodPerfectionStable)
+-- ⬇️ GANTI SEMUA BARIS LOAD MODULE SEPERTI INI
+local instant              = SafeLoadModule("Instant", URLS.Instant)
+local instant2             = SafeLoadModule("Instant2", URLS.Instant2)
+local blatantv1            = SafeLoadModule("BlatantV1", URLS.BlatantV1)
+local UltraBlatant         = SafeLoadModule("UltraBlatant", URLS.BlatantV2)
+local blatantv2            = SafeLoadModule("BlatantV2", URLS.BlatantV2old)
+local blatantv2fix         = SafeLoadModule("BlatantV2Fix", URLS.BlatantV2Fix)
 
-local TeleportModule       = LoadEncrypted(URLS.TeleportModule)
-local TeleportToPlayer     = LoadEncrypted(URLS.TeleportToPlayer)
-local SavedLocation        = LoadEncrypted(URLS.SavedLocation)
+local NoFishingAnimation   = SafeLoadModule("NoFishingAnimation", URLS.NoFishingAnimation)
+local LockPosition         = SafeLoadModule("LockPosition", URLS.LockPosition)
+local AutoEquipRod         = SafeLoadModule("AutoEquipRod", URLS.AutoEquipRod)
+local DisableCutscenes     = SafeLoadModule("DisableCutscenes", URLS.DisableCutscenes)
+local DisableExtras        = SafeLoadModule("DisableExtras", URLS.DisableExtras)
+local AutoTotem3X          = SafeLoadModule("AutoTotem3X", URLS.AutoTotem3X)
+local SkinAnimation        = SafeLoadModule("SkinAnimation", URLS.SkinAnimation)
+local WalkOnWater          = SafeLoadModule("WalkOnWater", URLS.WalkOnWater)
 
-local AutoQuestModule      = LoadEncrypted(URLS.AutoQuestModule)
-local AutoTemple           = LoadEncrypted(URLS.AutoTemple)
-local TempleDataReader     = LoadEncrypted(URLS.TempleDataReader)
+local TeleportModule       = SafeLoadModule("TeleportModule", URLS.TeleportModule)
+local TeleportToPlayer     = SafeLoadModule("TeleportToPlayer", URLS.TeleportToPlayer)
+local SavedLocation        = SafeLoadModule("SavedLocation", URLS.SavedLocation)
 
-local AutoSell             = LoadEncrypted(URLS.AutoSell)
-local AutoSellTimer        = LoadEncrypted(URLS.AutoSellTimer)
-local MerchantSystem       = LoadEncrypted(URLS.MerchantSystem)
-local RemoteBuyer          = LoadEncrypted(URLS.RemoteBuyer)
+local AutoQuestModule      = SafeLoadModule("AutoQuestModule", URLS.AutoQuestModule)
+local AutoTemple           = SafeLoadModule("AutoTemple", URLS.AutoTemple)
+local TempleDataReader     = SafeLoadModule("TempleDataReader", URLS.TempleDataReader)
 
-local FreecamModule        = LoadEncrypted(URLS.FreecamModule)
-local UnlimitedZoomModule  = LoadEncrypted(URLS.UnlimitedZoomModule)
+local AutoSell             = SafeLoadModule("AutoSell", URLS.AutoSell)
+local AutoSellTimer        = SafeLoadModule("AutoSellTimer", URLS.AutoSellTimer)
+local MerchantSystem       = SafeLoadModule("MerchantSystem", URLS.MerchantSystem)
+local RemoteBuyer          = SafeLoadModule("RemoteBuyer", URLS.RemoteBuyer)
 
-local AntiAFK              = LoadEncrypted(URLS.AntiAFK)
-local UnlockFPS            = LoadEncrypted(URLS.UnlockFPS)
-local FPSBooster           = LoadEncrypted(URLS.FPSBooster)
-local AutoBuyWeather       = LoadEncrypted(URLS.AutoBuyWeather)
-local Notify               = LoadEncrypted(URLS.Notify)
+local FreecamModule        = SafeLoadModule("FreecamModule", URLS.FreecamModule)
+local UnlimitedZoomModule  = SafeLoadModule("UnlimitedZoomModule", URLS.UnlimitedZoomModule)
+
+local AntiAFK              = SafeLoadModule("AntiAFK", URLS.AntiAFK)
+local UnlockFPS            = SafeLoadModule("UnlockFPS", URLS.UnlockFPS)
+local FPSBooster           = SafeLoadModule("FPSBooster", URLS.FPSBooster)
+local AutoBuyWeather       = SafeLoadModule("AutoBuyWeather", URLS.AutoBuyWeather)
+local Notify               = SafeLoadModule("Notify", URLS.Notify)
 
 -- Galaxy Color Palette
 local colors = {
