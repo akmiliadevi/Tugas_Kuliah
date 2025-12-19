@@ -9,17 +9,10 @@ repeat task.wait() until game:IsLoaded()
 -- ============================================
 
 -- Load Security Loader (upload SecurityLoader.lua to GitHub first)
-local SecurityLoader = loadstring(game:HttpGet("YOUR_GITHUB_RAW_LINK_HERE"))()
+local SecurityLoader = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/SecurityLoader.lua"))()
 
 -- Enable protections
 SecurityLoader.EnableAntiDump()
-
--- Validate HWID (if using whitelist)
-local allowed, msg = SecurityLoader.ValidateHWID()
-if not allowed then
-    warn(msg)
-    return
-end
 
 -- Load all modules (replace all your loadstring calls)
 local instant = SecurityLoader.LoadModule("instant")
