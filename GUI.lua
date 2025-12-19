@@ -46,6 +46,7 @@ local FPSBooster = SecurityLoader.LoadModule("FPSBooster")
 local AutoBuyWeather = SecurityLoader.LoadModule("AutoBuyWeather")
 local Notify = SecurityLoader.LoadModule("Notify")
 local GoodPerfectionStable = SecurityLoader.LoadModule("GoodPerfectionStable")
+local RejoinModule = SecurityLoader.LoadModule("RejoinModule")
 
 -- Continue with rest of your GUI code...
 print("✅ All modules loaded securely!")
@@ -2397,6 +2398,19 @@ makeDropdown(catFPS, "Select FPS Limit", "⚙️", {"60 FPS", "90 FPS", "120 FPS
         UnlockFPS.SetCap(fpsValue)
     end
 end, "FPSDropdown")
+
+-- Category untuk Rejoin
+local catRejoin = makeCategory(settingsPage, "Server Features", "🔄") -- Atau gunakan page lain seperti miscPage
+
+-- Button Rejoin
+makeButton(catRejoin, "Rejoin Server", function()
+    if RejoinModule and RejoinModule.Execute then
+        print("Executing rejoin...")
+        RejoinModule.Execute()
+    else
+        warn("Rejoin module not loaded!")
+    end
+end)
 
 -- ==== INTEGRASI HIDE STATS MODULE ====
 -- Letakkan kode ini di bagian atas file GUI utama Anda (setelah deklarasi variabel utama)
