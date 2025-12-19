@@ -12,7 +12,7 @@ repeat task.wait() until game:IsLoaded()
 local SecurityLoader = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/SecurityLoader.lua"))()
 
 -- Enable protections
-SecurityLoader.EnableAntiDump()
+-- SecurityLoader.EnableAntiDump()
 
 -- Load all modules (replace all your loadstring calls)
 local instant = SecurityLoader.LoadModule("instant")
