@@ -2380,6 +2380,7 @@ makeToggle(catServer, "Auto Rejoin on Disconnect", function(on)
     local TeleportService = game:GetService("TeleportService")
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
+    local GuiService = game:GetService("GuiService")
     
     if on then
         -- Aktifkan auto rejoin on disconnect
@@ -2387,34 +2388,52 @@ makeToggle(catServer, "Auto Rejoin on Disconnect", function(on)
             autoRejoinConnection:Disconnect()
         end
         
-        autoRejoinConnection = game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
-            if child.Name == "ErrorPrompt" or child:FindFirstChild("MessageArea") then
+        -- Method 1: Monitor CoreGui untuk error prompts
+        local success1, connection1 = pcall(function()
+            return game:GetService("CoreGui").DescendantAdded:Connect(function(descendant)
+                if descendant.Name == "ErrorPrompt" or descendant.Name == "ErrorFrame" then
+                    task.wait(0.5)
+                    pcall(function()
+                        TeleportService:Teleport(game.PlaceId, LocalPlayer)
+                    end)
+                end
+            end)
+        end)
+        
+        if success1 then
+            autoRejoinConnection = connection1
+        end
+        
+        -- Method 2: Backup method using GuiService ErrorMessage
+        local success2 = pcall(function()
+            GuiService.ErrorMessageChanged:Connect(function()
                 task.wait(0.5)
-                
                 pcall(function()
                     TeleportService:Teleport(game.PlaceId, LocalPlayer)
                 end)
-            end
+            end)
         end)
         
         if Notify then
-            Notify.Send("Auto Rejoin", "Auto rejoin on disconnect AKTIF!", 4)
+            Notify.Send("Auto Rejoin 🔄", "Auto rejoin on disconnect AKTIF!", 4)
         end
         
     else
         -- Nonaktifkan auto rejoin
         if autoRejoinConnection then
-            autoRejoinConnection:Disconnect()
+            pcall(function()
+                autoRejoinConnection:Disconnect()
+            end)
             autoRejoinConnection = nil
         end
         
         if Notify then
-            Notify.Send("Auto Rejoin", "Auto rejoin on disconnect DIMATIKAN.", 3)
+            Notify.Send("Auto Rejoin 🔄", "Auto rejoin on disconnect DIMATIKAN.", 3)
         end
     end
 end)
 
-makeButton(catServer, "Rejoin Now", function()
+makeButton(catServer, "🔄 Rejoin Now", function()
     -- Manual rejoin button
     local TeleportService = game:GetService("TeleportService")
     local Players = game:GetService("Players")
