@@ -8,7 +8,7 @@ local SecurityLoader = {}
 -- ============================================
 local CONFIG = {
     VERSION = "2.3.0",
-    ALLOWED_DOMAIN = "raw.githubusercontent.com/akmiliadevi",
+    ALLOWED_DOMAIN = "raw.githubusercontent.com",
     MAX_LOADS_PER_SESSION = 100,
     ENABLE_RATE_LIMITING = true,
     ENABLE_DOMAIN_CHECK = true,
