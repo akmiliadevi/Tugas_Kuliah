@@ -56,96 +56,102 @@ end
 
 -- Fungsi untuk mengaktifkan auto fishing in-game
 local function enableAutoFishing(state)
-    local success, err = pcall(function()
-        -- Cari RemoteFunction atau RemoteEvent untuk UpdateAutoFishingState
-        local updateAutoFishing = nil
-        
-        -- Coba cari di ReplicatedStorage
-        for _, item in pairs(ReplicatedStorage:GetDescendants()) do
-            if item.Name == "UpdateAutoFishingState" or item.Name == "RF" then
-                if item:IsA("RemoteFunction") or item:IsA("RemoteEvent") then
-                    updateAutoFishing = item
-                    break
-                end
-            end
+    local success, result = pcall(function()
+        -- Path lengkap sesuai dengan yang Anda berikan
+        local packages = ReplicatedStorage:WaitForChild("Packages", 5)
+        if not packages then
+            warn("Packages tidak ditemukan")
+            return false
         end
         
-        -- Jika tidak ditemukan, coba cari dengan nama alternatif
+        local index = packages:WaitForChild("_Index", 5)
+        if not index then
+            warn("_Index tidak ditemukan")
+            return false
+        end
+        
+        local sleitnick = index:WaitForChild("sleitnick_net@0.2.0", 5)
+        if not sleitnick then
+            warn("sleitnick_net@0.2.0 tidak ditemukan")
+            return false
+        end
+        
+        local net = sleitnick:WaitForChild("net", 5)
+        if not net then
+            warn("net tidak ditemukan")
+            return false
+        end
+        
+        -- Nama remote adalah "RF/UpdateAutoFishingState" (dengan slash)
+        local updateAutoFishing = net:WaitForChild("RF/UpdateAutoFishingState", 5)
         if not updateAutoFishing then
-            updateAutoFishing = ReplicatedStorage:FindFirstChild("RF", true) or
-                               ReplicatedStorage:FindFirstChild("UpdateAutoFishingState", true) or
-                               ReplicatedStorage:FindFirstChild("RemoteFunction", true) or
-                               ReplicatedStorage:FindFirstChild("AutoFishing", true)
+            warn("RF/UpdateAutoFishingState tidak ditemukan")
+            return false
         end
         
-        if updateAutoFishing then
-            -- Invoke/Fire berdasarkan tipe
-            if updateAutoFishing:IsA("RemoteFunction") then
-                local result = updateAutoFishing:InvokeServer(state)
-                return true
-            elseif updateAutoFishing:IsA("RemoteEvent") then
-                updateAutoFishing:FireServer(state)
-                return true
-            end
+        if updateAutoFishing:IsA("RemoteFunction") then
+            local invokeResult = updateAutoFishing:InvokeServer(state)
+            print("Auto Fishing", state and "diaktifkan" or "dinonaktifkan", "- Result:", invokeResult)
+            return true
         else
-            -- Metode alternatif: Cari di PlayerGui button dan klik
-            local success2 = pcall(function()
-                local playerGui = LocalPlayer.PlayerGui
-                local fishing = playerGui:FindFirstChild("Fishing")
-                if fishing then
-                    local autoButton = fishing:FindFirstChild("Auto", true)
-                    if autoButton and autoButton:IsA("GuiButton") then
-                        -- Simulasi klik button
-                        for _, connection in pairs(getconnections(autoButton.MouseButton1Click)) do
-                            connection:Fire()
-                        end
-                        return true
-                    end
-                end
-            end)
-            
-            if success2 then
-                return true
-            end
-            
+            warn("RF/UpdateAutoFishingState bukan RemoteFunction")
             return false
         end
     end)
     
     if not success then
+        warn("Error saat mengaktifkan auto fishing:", result)
         return false
     end
     
-    return true
+    return result
 end
 
 -- Fungsi Start - Dipanggil saat toggle ON
 function GoodPerfectionStable.Start()
+    print("=== Memulai Auto Fish ===")
     GoodPerfectionStable.Enabled = true
     
     -- Tunggu sebentar untuk memastikan game sudah siap
     task.wait(0.3)
     
     -- Hapus UIGradient
+    print("Menghapus UIGradient...")
     local gradientRemoved = removeUIGradient()
+    print("UIGradient removed:", gradientRemoved)
     
     -- Tunggu sebentar sebelum mengaktifkan auto
     task.wait(0.5)
     
     -- Aktifkan auto fishing in-game
+    print("Mengaktifkan Auto Fishing...")
     local autoEnabled = enableAutoFishing(true)
+    print("Auto Fishing enabled:", autoEnabled)
     
-    return (gradientRemoved and autoEnabled)
+    if autoEnabled then
+        print("✓ Auto Fish berhasil diaktifkan!")
+    else
+        warn("✗ Auto Fish gagal diaktifkan!")
+    end
+    
+    return autoEnabled
 end
 
 -- Fungsi Stop - Dipanggil saat toggle OFF
 function GoodPerfectionStable.Stop()
+    print("=== Menghentikan Auto Fish ===")
     GoodPerfectionStable.Enabled = false
     
     -- Nonaktifkan auto fishing in-game
-    enableAutoFishing(false)
+    local success = enableAutoFishing(false)
     
-    return true
+    if success then
+        print("✓ Auto Fish berhasil dinonaktifkan!")
+    else
+        warn("✗ Auto Fish gagal dinonaktifkan!")
+    end
+    
+    return success
 end
 
 -- Fungsi untuk check status
