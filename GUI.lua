@@ -2370,16 +2370,30 @@ makeToggle(catAFK, "Enable Anti-AFK", function(on)
     end
 end)
 
--- ==== SERVER MANAGEMENT ====
+-- ==== SERVER MANAGEMENT ==== 
+-- ✅ GANTI BAGIAN INI DENGAN KODE BARU
 local catServer = makeCategory(settingsPage, "Server Features", "🔄")
 
-makeButton(catServer, "🔄 Rejoin Server", function()
-    pcall(function()
-        game:GetService("TeleportService"):Teleport(game.PlaceId, game:GetService("Players").LocalPlayer)
+makeButton(catServer, "Rejoin Server", function()
+    -- Inline rejoin code (tidak perlu module eksternal)
+    local TeleportService = game:GetService("TeleportService")
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    
+    local success, err = pcall(function()
+        TeleportService:Teleport(game.PlaceId, LocalPlayer)
     end)
     
-    if Notify then
-        Notify.Send("Rejoin 🔄", "Rejoining server...", 3)
+    if success then
+        print("✅ Rejoin request sent!")
+        if Notify then
+            Notify.Send("Rejoin", "Teleporting to new server...", 3)
+        end
+    else
+        warn("❌ Rejoin failed:", err)
+        if Notify then
+            Notify.Send("Error ❌", "Rejoin failed: " .. tostring(err), 3)
+        end
     end
 end)
 
