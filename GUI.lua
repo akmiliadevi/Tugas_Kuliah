@@ -8,220 +8,6 @@ repeat task.wait() until game:IsLoaded()
 -- USAGE EXAMPLE - Paste at top of your GUI
 -- ============================================
 
--- ============================================
--- LOAD SECURITY LOADER DENGAN SAFETY CHECK
--- ============================================
-
-local SecurityLoader
-local maxRetries = 5
-local retryCount = 0
-
-repeat
-    local success, result = pcall(function()
-        return loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/SecurityLoader.lua"))()
-    end)
-    
-    if success and result then
-        SecurityLoader = result
-        print("✅ SecurityLoader loaded successfully!")
-        break
-    else
-        retryCount = retryCount + 1
-        warn("⚠️ SecurityLoader load attempt " .. retryCount .. "/" .. maxRetries .. " failed: " .. tostring(result))
-        
-        if retryCount >= maxRetries then
-            error("❌ FATAL: SecurityLoader failed to load after " .. maxRetries .. " attempts. Check your internet connection or GitHub link!")
-        end
-        
-        task.wait(2) -- Wait 2 seconds before retry
-    end
-until SecurityLoader
-
--- Validate SecurityLoader has LoadModule function
-if not SecurityLoader or type(SecurityLoader.LoadModule) ~= "function" then
-    error("❌ FATAL: SecurityLoader loaded but LoadModule function is missing!")
-end
-
-print("🔐 SecurityLoader ready. Starting module loading...")
-
-local Modules = {}
-
--- ✨ Function untuk load module secara async
-local function LoadModuleAsync(moduleName)
-    task.spawn(function()
-        local success, result = pcall(function()
-            return SecurityLoader.LoadModule(moduleName)
-        end)
-        
-        if success then
-            Modules[moduleName] = result
-            print("✅ " .. moduleName .. " loaded")
-        else
-            warn("❌ Failed to load " .. moduleName .. ": " .. tostring(result))
-            Modules[moduleName] = nil
-        end
-    end)
-end
-
--- ✨ Load semua modules secara parallel
-local moduleList = {
-    "instant", "instant2", "blatantv1", "UltraBlatant", "blatantv2", "blatantv2fix",
-    "NoFishingAnimation", "LockPosition", "AutoEquipRod", "DisableCutscenes", 
-    "DisableExtras", "AutoTotem3X", "SkinAnimation", "WalkOnWater", "TeleportModule",
-    "TeleportToPlayer", "SavedLocation", "AutoQuestModule", "AutoTemple", 
-    "TempleDataReader", "AutoSell", "AutoSellTimer", "MerchantSystem", "RemoteBuyer",
-    "FreecamModule", "UnlimitedZoomModule", "AntiAFK", "UnlockFPS", "FPSBooster",
-    "AutoBuyWeather", "Notify", "GoodPerfectionStable", "HideStats", "Webhook",
-    "EventTeleportDynamic"
-}
-
-for _, moduleName in ipairs(moduleList) do
-    LoadModuleAsync(moduleName)
-end
-
--- ✨ Helper function untuk akses module dengan safety check (VERSI LENGKAP)
-local function GetModule(name)
-    return Modules[name] or {
-        Start = function() warn(name .. " not loaded yet") end,
-        Stop = function() end,
-        Enable = function() end,
-        Disable = function() end,
-        Settings = {},
-        SetWebhookURL = function() end,
-        SetDiscordUserID = function() end,
-        SetEnabledRarities = function() end,
-        IsRunning = function() return false end,
-        GetQuestInfo = function() return "Module not loaded" end,
-        GetTempleStatus = function() return {} end,
-        OnTempleUpdate = function() end,
-        Locations = {},
-        AllWeathers = {},
-        SetSelected = function() end,
-        SetInterval = function() end,
-        Interval = 5,
-        SellOnce = function() end,
-        Open = function() end,
-        Close = function() end,
-        BuyRod = function() end,
-        BuyBait = function() end,
-        SetSpeed = function() end,
-        SetSensitivity = function() end,
-        EnableF3Keybind = function() end,
-        SetCap = function() end,
-        TeleportTo = function() end,
-        Save = function() end,
-        Teleport = function() return false end,
-        Reset = function() end,
-        GetEventNames = function() return {"Loading..."} end,
-        HasCoords = function() return false end,
-        TeleportNow = function() return false end,
-        SwitchSkin = function() return false end,
-        IsEnabled = function() return false end,
-        GetCurrentSkin = function() return "None" end,
-        Send = function() end,
-        StartWithDelay = function() end,
-        StartSmallNotification = function() end,
-        StopSmallNotification = function() end,
-        StartSkinEffect = function() end,
-        StopSkinEffect = function() end,
-        UpdateSettings = function() end,
-        StartAutoTeleport = function() end,
-        StopAutoTeleport = function() end,
-        SetFakeName = function() end,
-        SetFakeLevel = function() end,
-        SetMainGuiName = function() end
-    }
-end
-
--- ✨ Aliases untuk backward compatibility
-local instant = GetModule("instant")
-local instant2 = GetModule("instant2")
-local blatantv1 = GetModule("blatantv1")
-local UltraBlatant = GetModule("UltraBlatant")
-local blatantv2 = GetModule("blatantv2")
-local blatantv2fix = GetModule("blatantv2fix")
-local NoFishingAnimation = GetModule("NoFishingAnimation")
-local LockPosition = GetModule("LockPosition")
-local AutoEquipRod = GetModule("AutoEquipRod")
-local DisableCutscenes = GetModule("DisableCutscenes")
-local DisableExtras = GetModule("DisableExtras")
-local AutoTotem3X = GetModule("AutoTotem3X")
-local SkinAnimation = GetModule("SkinAnimation")
-local WalkOnWater = GetModule("WalkOnWater")
-local TeleportModule = GetModule("TeleportModule")
-local TeleportToPlayer = GetModule("TeleportToPlayer")
-local SavedLocation = GetModule("SavedLocation")
-local AutoQuestModule = GetModule("AutoQuestModule")
-local AutoTemple = GetModule("AutoTemple")
-local TempleDataReader = GetModule("TempleDataReader")
-local AutoSell = GetModule("AutoSell")
-local AutoSellTimer = GetModule("AutoSellTimer")
-local MerchantSystem = GetModule("MerchantSystem")
-local RemoteBuyer = GetModule("RemoteBuyer")
-local FreecamModule = GetModule("FreecamModule")
-local UnlimitedZoomModule = GetModule("UnlimitedZoomModule")
-local AntiAFK = GetModule("AntiAFK")
-local UnlockFPS = GetModule("UnlockFPS")
-local FPSBooster = GetModule("FPSBooster")
-local AutoBuyWeather = GetModule("AutoBuyWeather")
-local Notify = GetModule("Notify")
-local GoodPerfectionStable = GetModule("GoodPerfectionStable")
-local HideStats = GetModule("HideStats")
-local WebhookModule = GetModule("Webhook")
-local EventTeleport = GetModule("EventTeleportDynamic")
-
--- ✨ Update module references secara realtime
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-        instant = Modules["instant"] or instant
-        instant2 = Modules["instant2"] or instant2
-        blatantv1 = Modules["blatantv1"] or blatantv1
-        UltraBlatant = Modules["UltraBlatant"] or UltraBlatant
-        blatantv2 = Modules["blatantv2"] or blatantv2
-        blatantv2fix = Modules["blatantv2fix"] or blatantv2fix
-        NoFishingAnimation = Modules["NoFishingAnimation"] or NoFishingAnimation
-        LockPosition = Modules["LockPosition"] or LockPosition
-        AutoEquipRod = Modules["AutoEquipRod"] or AutoEquipRod
-        DisableCutscenes = Modules["DisableCutscenes"] or DisableCutscenes
-        DisableExtras = Modules["DisableExtras"] or DisableExtras
-        AutoTotem3X = Modules["AutoTotem3X"] or AutoTotem3X
-        SkinAnimation = Modules["SkinAnimation"] or SkinAnimation
-        WalkOnWater = Modules["WalkOnWater"] or WalkOnWater
-        TeleportModule = Modules["TeleportModule"] or TeleportModule
-        TeleportToPlayer = Modules["TeleportToPlayer"] or TeleportToPlayer
-        SavedLocation = Modules["SavedLocation"] or SavedLocation
-        AutoQuestModule = Modules["AutoQuestModule"] or AutoQuestModule
-        AutoTemple = Modules["AutoTemple"] or AutoTemple
-        TempleDataReader = Modules["TempleDataReader"] or TempleDataReader
-        AutoSell = Modules["AutoSell"] or AutoSell
-        AutoSellTimer = Modules["AutoSellTimer"] or AutoSellTimer
-        MerchantSystem = Modules["MerchantSystem"] or MerchantSystem
-        RemoteBuyer = Modules["RemoteBuyer"] or RemoteBuyer
-        FreecamModule = Modules["FreecamModule"] or FreecamModule
-        UnlimitedZoomModule = Modules["UnlimitedZoomModule"] or UnlimitedZoomModule
-        AntiAFK = Modules["AntiAFK"] or AntiAFK
-        UnlockFPS = Modules["UnlockFPS"] or UnlockFPS
-        FPSBooster = Modules["FPSBooster"] or FPSBooster
-        AutoBuyWeather = Modules["AutoBuyWeather"] or AutoBuyWeather
-        Notify = Modules["Notify"] or Notify
-        GoodPerfectionStable = Modules["GoodPerfectionStable"] or GoodPerfectionStable
-        HideStats = Modules["HideStats"] or HideStats
-        WebhookModule = Modules["Webhook"] or WebhookModule
-        EventTeleport = Modules["EventTeleportDynamic"] or EventTeleport
-        
-        local allLoaded = true
-        for _, moduleName in ipairs(moduleList) do
-            if not Modules[moduleName] then
-                allLoaded = false
-                break
-            end
-        end
-        if allLoaded then break end
-    end
-    print("✅ All module references updated!")
-end)
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -239,7 +25,45 @@ local function new(class, props)
     return inst
 end
 
+-- Load Security Loader (upload SecurityLoader.lua to GitHub first)
+local SecurityLoader = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/SecurityLoader.lua"))()
 
+-- Load all modules (replace all your loadstring calls)
+local instant = SecurityLoader.LoadModule("instant")
+local instant2 = SecurityLoader.LoadModule("instant2")
+local blatantv1 = SecurityLoader.LoadModule("blatantv1")
+local UltraBlatant = SecurityLoader.LoadModule("UltraBlatant")
+local blatantv2 = SecurityLoader.LoadModule("blatantv2")
+local blatantv2fix = SecurityLoader.LoadModule("blatantv2fix")
+local NoFishingAnimation = SecurityLoader.LoadModule("NoFishingAnimation")
+local LockPosition = SecurityLoader.LoadModule("LockPosition")
+local AutoEquipRod = SecurityLoader.LoadModule("AutoEquipRod")
+local DisableCutscenes = SecurityLoader.LoadModule("DisableCutscenes")
+local DisableExtras = SecurityLoader.LoadModule("DisableExtras")
+local AutoTotem3X = SecurityLoader.LoadModule("AutoTotem3X")
+local SkinAnimation = SecurityLoader.LoadModule("SkinAnimation")
+local WalkOnWater = SecurityLoader.LoadModule("WalkOnWater")
+local TeleportModule = SecurityLoader.LoadModule("TeleportModule")
+local TeleportToPlayer = SecurityLoader.LoadModule("TeleportToPlayer")
+local SavedLocation = SecurityLoader.LoadModule("SavedLocation")
+local AutoQuestModule = SecurityLoader.LoadModule("AutoQuestModule")
+local AutoTemple = SecurityLoader.LoadModule("AutoTemple")
+local TempleDataReader = SecurityLoader.LoadModule("TempleDataReader")
+local AutoSell = SecurityLoader.LoadModule("AutoSell")
+local AutoSellTimer = SecurityLoader.LoadModule("AutoSellTimer")
+local MerchantSystem = SecurityLoader.LoadModule("MerchantSystem")
+local RemoteBuyer = SecurityLoader.LoadModule("RemoteBuyer")
+local FreecamModule = SecurityLoader.LoadModule("FreecamModule")
+local UnlimitedZoomModule = SecurityLoader.LoadModule("UnlimitedZoomModule")
+local AntiAFK = SecurityLoader.LoadModule("AntiAFK")
+local UnlockFPS = SecurityLoader.LoadModule("UnlockFPS")
+local FPSBooster = SecurityLoader.LoadModule("FPSBooster")
+local AutoBuyWeather = SecurityLoader.LoadModule("AutoBuyWeather")
+local Notify = SecurityLoader.LoadModule("Notify")
+local GoodPerfectionStable = SecurityLoader.LoadModule("GoodPerfectionStable")
+
+-- Continue with rest of your GUI code...
+print("✅ All modules loaded securely!")
 
 -- Galaxy Color Palette
 local colors = {
