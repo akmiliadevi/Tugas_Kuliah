@@ -1548,12 +1548,19 @@ end)
 --Events Teleport
 local selectedEventName = nil
 
-local ok, EventTeleport = pcall(function()
-    return loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/TeleportSystem/EventTeleportDynamic.lua"))()
-end)
-if not ok or not EventTeleport then
-    warn("Gagal load EventTeleport module")
-    EventTeleport = nil
+local EventTeleport = SecurityLoader.LoadModule("EventTeleportDynamic")
+
+if not EventTeleport then
+    warn("⚠️ EventTeleportDynamic module failed to load")
+    EventTeleport = {
+        GetEventNames = function() return {"- No events -"} end,
+        HasCoords = function() return false end,
+        Start = function() end,
+        Stop = function() end,
+        TeleportNow = function() return false end
+    }
+else
+    print("✅ EventTeleportDynamic loaded successfully")
 end
 
 -- Ambil list event
@@ -2384,24 +2391,15 @@ end, "FPSDropdown")
 -- ==== INTEGRASI HIDE STATS MODULE ====
 -- Letakkan kode ini di bagian atas file GUI utama Anda (setelah deklarasi variabel utama)
 
--- Load Hide Stats Module via loadstring
-local HideStats
-local hideStatsLoaded = false
+-- ✅ BENAR:
+local HideStats = SecurityLoader.LoadModule("HideStats")
+local hideStatsLoaded = (HideStats ~= nil)
 
-spawn(function()
-    local success, result = pcall(function()
-        -- GANTI dengan link raw Anda
-        return loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Misc/HideStats.lua"))()
-    end)
-    
-    if success and result then
-        HideStats = result
-        hideStatsLoaded = true
-        print("[GUI] Hide Stats Module berhasil dimuat!")
-    else
-        warn("[GUI] Gagal memuat Hide Stats Module:", result)
-    end
-end)
+if not hideStatsLoaded then
+    warn("⚠️ HideStats module failed to load")
+else
+    print("✅ HideStats module loaded successfully")
+end  -- ⬅️ HAPUS PARENTHESIS DI SINI
 
 -- ==== SETTINGS PAGE - HIDE STATS CATEGORY ====
 -- Letakkan ini di bagian Settings Page Anda (setelah FPS Unlocker category)
@@ -2657,33 +2655,15 @@ end)
 -- ============================
 
 -- Load Webhook Module dari link raw (ganti dengan link raw Anda)
-local WebhookModule = nil
-local webhookLoadSuccess = false
+-- Load Webhook Module via SecurityLoader
+local WebhookModule = SecurityLoader.LoadModule("Webhook")
+local webhookLoadSuccess = (WebhookModule ~= nil)
 
--- Fungsi untuk load webhook module
-local function loadWebhookModule()
-    local success, result = pcall(function()
-        -- GANTI URL INI dengan link raw file WebhookModule.lua Anda
-        local url = "https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Misc/Webhook.lua"
-        return loadstring(game:HttpGet(url))()
-    end)
-    
-    if success then
-        WebhookModule = result
-        webhookLoadSuccess = true
-        print("✅ Webhook Module loaded successfully!")
-        return true
-    else
-        warn("❌ Failed to load Webhook Module:", result)
-        Notify.Send("Error", "Gagal load Webhook Module!", 3)
-        return false
-    end
+if not webhookLoadSuccess then
+    warn("⚠️ Webhook module failed to load")
+else
+    print("✅ Webhook module loaded successfully")
 end
-
--- Load module saat startup
-task.spawn(function()
-    loadWebhookModule()
-end)
 
 -- ============================
 -- WEBHOOK CATEGORY IN WEBHOOK PAGE
@@ -3340,18 +3320,6 @@ makeButton(catWebhook, "Test Webhook Connection", function()
     end
 end)
 
-makeButton(catWebhook, "Reload Webhook Module", function()
-    Notify.Send("Loading...", "Memuat ulang webhook module...", 2)
-    task.spawn(function()
-        task.wait(0.5)
-        local success = loadWebhookModule()
-        if success then
-            Notify.Send("Success ✅", "Webhook module berhasil di-load!", 3)
-        else
-            Notify.Send("Error ❌", "Gagal load webhook module!", 3)
-        end
-    end)
-end)
 
 local statusContainer = new("Frame", {
     Parent = catWebhook,
