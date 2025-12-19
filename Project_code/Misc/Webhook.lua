@@ -88,7 +88,10 @@ end
 -- GET PLAYER DISPLAY NAME
 --------------------------------------------------
 local function getPlayerDisplayName()
-    -- Gunakan DisplayName jika tersedia, fallback ke Name jika tidak
+    -- Prioritas: Custom Name > Display Name > Username
+    if WebhookModule.Config.CustomName and WebhookModule.Config.CustomName ~= "" then
+        return WebhookModule.Config.CustomName
+    end
     return LocalPlayer.DisplayName or LocalPlayer.Name
 end
 
