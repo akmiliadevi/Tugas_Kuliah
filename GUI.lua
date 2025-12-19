@@ -89,7 +89,6 @@ local URLS = {
 }
 
 
---local ut
 local localPlayer = Players.LocalPlayer
 
 repeat task.wait() until localPlayer:FindFirstChild("PlayerGui")
@@ -122,7 +121,7 @@ local DisableExtras        = LoadEncrypted(URLS.DisableExtras)
 local AutoTotem3X          = LoadEncrypted(URLS.AutoTotem3X)
 local SkinAnimation        = LoadEncrypted(URLS.SkinAnimation)
 local WalkOnWater          = LoadEncrypted(URLS.WalkOnWater)
-local GoodPerfectionStable = LoadEncrypted(URLS.GoodPerfectionStable)
+-- local GoodPerfectionStable = LoadEncrypted(URLS.GoodPerfectionStable)
 
 local TeleportModule       = LoadEncrypted(URLS.TeleportModule)
 local TeleportToPlayer     = LoadEncrypted(URLS.TeleportToPlayer)
@@ -145,7 +144,6 @@ local UnlockFPS            = LoadEncrypted(URLS.UnlockFPS)
 local FPSBooster           = LoadEncrypted(URLS.FPSBooster)
 local AutoBuyWeather       = LoadEncrypted(URLS.AutoBuyWeather)
 local Notify               = LoadEncrypted(URLS.Notify)
-
 
 -- Galaxy Color Palette
 local colors = {
@@ -1455,17 +1453,6 @@ makeToggle(catSupport, "Walk On Water", function(on)
         Notify.Send("Walk On Water", "Walk on water dimatikan.", 3)
     end
 end)
-
---makeToggle(catSupport, "Good/Perfection Stable Mode", function(on)
---    if on then
---        GoodPerfectionStable.Start()
---        Notify.Send("Good/Perfection Stable", "Fitur dihidupkan!", 4)
---    else
---        GoodPerfectionStable.Stop()
---        Notify.Send("Good/Perfection Stable", "Fitur dimatikan!", 4)
---    end
---end)
-
 
 local catAutoTotem = makeCategory(mainPage, "Auto Spawn 3X Totem", "🛠️")
 
