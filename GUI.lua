@@ -137,23 +137,30 @@ local function SafeLoadModule(name, encryptedUrl)
         return LoadEncrypted(encryptedUrl)
     end)
     
-    if success and module then
+    if success and module and type(module) == "table" then
         print("✅ Module loaded:", name)
         return module
     else
-        warn("❌ Failed to load module:", name, module)
-        -- Return dummy module untuk prevent crash
-        return {
-            Start = function() 
-                warn(name .. " not loaded") 
-            end,
-            Stop = function() end,
-            Settings = {},
-            UpdateSettings = function() end,
-            Enable = function() end,
-            Disable = function() end,
-            IsRunning = function() return false end
-        }
+        warn("❌ Failed to load module:", name, tostring(module))
+        -- Return dummy module dengan SEMUA functions yang mungkin dipanggil
+        return setmetatable({}, {
+            __index = function(t, k)
+                -- Return function dummy untuk semua calls
+                if k == "Settings" then
+                    return setmetatable({}, {
+                        __index = function() return 0 end,
+                        __newindex = function() end
+                    })
+                elseif k == "Locations" then
+                    return {}
+                else
+                    return function(...) 
+                        warn(name .. "." .. k .. " not loaded")
+                        return false
+                    end
+                end
+            end
+        })
     end
 end
 
@@ -1276,62 +1283,68 @@ end
 -- BAGIAN 3 (FINAL): Features, Pages Content, Minimize System, Animations
 
 -- ==== MAIN PAGE ====
+-- ==== MAIN PAGE ====
 local catAutoFishing = makeCategory(mainPage, "Auto Fishing", "🎣")
 local currentInstantMode = "None"
 local fishingDelayValue = 1.30
 local cancelDelayValue = 0.19
-local isInstantFishingEnabled = false -- Tambahkan variabel untuk melacak status toggle
+local isInstantFishingEnabled = false
 
 makeDropdown(catAutoFishing, "Instant Fishing Mode", "⚡", {"Fast", "Perfect"}, function(mode)
     currentInstantMode = mode
-    instant.Stop()
-    instant2.Stop()
     
-    -- Hanya start jika toggle sudah diaktifkan
+    -- Safety check sebelum akses module
+    if instant and instant.Stop then instant.Stop() end
+    if instant2 and instant2.Stop then instant2.Stop() end
+    
     if isInstantFishingEnabled then
-        if mode == "Fast" then
+        if mode == "Fast" and instant and instant.Settings and instant.Start then
             instant.Settings.MaxWaitTime = fishingDelayValue
             instant.Settings.CancelDelay = cancelDelayValue
             instant.Start()
-        elseif mode == "Perfect" then
+        elseif mode == "Perfect" and instant2 and instant2.Settings and instant2.Start then
             instant2.Settings.MaxWaitTime = fishingDelayValue
             instant2.Settings.CancelDelay = cancelDelayValue
             instant2.Start()
         end
     else
-        -- Jika toggle belum aktif, hanya update settings tanpa start
-        instant.Settings.MaxWaitTime = fishingDelayValue
-        instant.Settings.CancelDelay = cancelDelayValue
-        instant2.Settings.MaxWaitTime = fishingDelayValue
-        instant2.Settings.CancelDelay = cancelDelayValue
+        -- Update settings saja
+        if instant and instant.Settings then
+            instant.Settings.MaxWaitTime = fishingDelayValue
+            instant.Settings.CancelDelay = cancelDelayValue
+        end
+        if instant2 and instant2.Settings then
+            instant2.Settings.MaxWaitTime = fishingDelayValue
+            instant2.Settings.CancelDelay = cancelDelayValue
+        end
     end
 end, "InstantFishingMode")
 
 makeToggle(catAutoFishing, "Enable Instant Fishing", function(on)
-    isInstantFishingEnabled = on -- Update status toggle
+    isInstantFishingEnabled = on
     
     if on then
-        if currentInstantMode == "Fast" then
+        if currentInstantMode == "Fast" and instant and instant.Start then
             instant.Start()
-        elseif currentInstantMode == "Perfect" then
+        elseif currentInstantMode == "Perfect" and instant2 and instant2.Start then
             instant2.Start()
         end
     else
-        instant.Stop()
-        instant2.Stop()
+        if instant and instant.Stop then instant.Stop() end
+        if instant2 and instant2.Stop then instant2.Stop() end
     end
 end)
 
 makeInput(catAutoFishing, "Fishing Delay", 1.30, function(v)
     fishingDelayValue = v
-    instant.Settings.MaxWaitTime = v
-    instant2.Settings.MaxWaitTime = v
+    if instant and instant.Settings then instant.Settings.MaxWaitTime = v end
+    if instant2 and instant2.Settings then instant2.Settings.MaxWaitTime = v end
 end)
 
 makeInput(catAutoFishing, "Cancel Delay", 0.19, function(v)
     cancelDelayValue = v
-    instant.Settings.CancelDelay = v
-    instant2.Settings.CancelDelay = v
+    if instant and instant.Settings then instant.Settings.CancelDelay = v end
+    if instant2 and instant2.Settings then instant2.Settings.CancelDelay = v end
 end)
 
 local catBlatantV2 = makeCategory(mainPage, "Blatant Tester", "🎯")
@@ -3776,6 +3789,24 @@ task.spawn(function()
         BackgroundTransparency=0.25  -- Lebih transparan dari 0.15
     }):Play()
 end)
+
+-- ==== DEBUG MODULE STATUS ====
+print("\n🔍 MODULE LOAD STATUS:")
+print("━━━━━━━━━━━━━━━━━━━━━━")
+
+local testModules = {
+    {name="Instant", module=instant},
+    {name="Notify", module=Notify},
+    {name="TeleportModule", module=TeleportModule},
+    {name="AutoQuestModule", module=AutoQuestModule}
+}
+
+for _, m in ipairs(testModules) do
+    local status = m.module and type(m.module) == "table" and "✅ OK" or "❌ FAIL"
+    print(status, m.name)
+end
+
+print("━━━━━━━━━━━━━━━━━━━━━━\n")
 
 print("━━━━━━━━━━━━━━━━━━━━━━")
 print("✨ Lynx GUI v2.3 ")
