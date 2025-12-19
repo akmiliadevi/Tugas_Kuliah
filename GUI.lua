@@ -47,7 +47,7 @@ for _, moduleName in ipairs(moduleList) do
     LoadModuleAsync(moduleName)
 end
 
--- ✨ Helper function untuk akses module dengan safety check
+-- ✨ Helper function untuk akses module dengan safety check (VERSI LENGKAP)
 local function GetModule(name)
     return Modules[name] or {
         Start = function() warn(name .. " not loaded yet") end,
@@ -58,11 +58,50 @@ local function GetModule(name)
         SetWebhookURL = function() end,
         SetDiscordUserID = function() end,
         SetEnabledRarities = function() end,
-        IsRunning = function() return false end
+        IsRunning = function() return false end,
+        GetQuestInfo = function() return "Module not loaded" end,
+        GetTempleStatus = function() return {} end,
+        OnTempleUpdate = function() end,
+        Locations = {},
+        AllWeathers = {},
+        SetSelected = function() end,
+        SetInterval = function() end,
+        Interval = 5,
+        SellOnce = function() end,
+        Open = function() end,
+        Close = function() end,
+        BuyRod = function() end,
+        BuyBait = function() end,
+        SetSpeed = function() end,
+        SetSensitivity = function() end,
+        EnableF3Keybind = function() end,
+        SetCap = function() end,
+        TeleportTo = function() end,
+        Save = function() end,
+        Teleport = function() return false end,
+        Reset = function() end,
+        GetEventNames = function() return {"Loading..."} end,
+        HasCoords = function() return false end,
+        TeleportNow = function() return false end,
+        SwitchSkin = function() return false end,
+        IsEnabled = function() return false end,
+        GetCurrentSkin = function() return "None" end,
+        Send = function() end,
+        StartWithDelay = function() end,
+        StartSmallNotification = function() end,
+        StopSmallNotification = function() end,
+        StartSkinEffect = function() end,
+        StopSkinEffect = function() end,
+        UpdateSettings = function() end,
+        StartAutoTeleport = function() end,
+        StopAutoTeleport = function() end,
+        SetFakeName = function() end,
+        SetFakeLevel = function() end,
+        SetMainGuiName = function() end
     }
 end
 
--- ✨ Aliases untuk backward compatibility (SALIN SEMUA INI)
+-- ✨ Aliases untuk backward compatibility
 local instant = GetModule("instant")
 local instant2 = GetModule("instant2")
 local blatantv1 = GetModule("blatantv1")
@@ -150,7 +189,6 @@ task.spawn(function()
     end
     print("✅ All module references updated!")
 end)
-
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
