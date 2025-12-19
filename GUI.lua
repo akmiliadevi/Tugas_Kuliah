@@ -2373,39 +2373,7 @@ end)
 -- ==== SERVER MANAGEMENT ====
 local catServer = makeCategory(settingsPage, "Server Features", "🔄")
 
-local autoRejoinEnabled = false
-
-makeToggle(catServer, "Auto Rejoin on Disconnect", function(on)
-    autoRejoinEnabled = on
-    
-    if on then
-        task.spawn(function()
-            while autoRejoinEnabled and task.wait(1) do
-                local success = pcall(function()
-                    local player = game:GetService("Players").LocalPlayer
-                    if not player or not player.Parent then
-                        task.wait(1)
-                        game:GetService("TeleportService"):Teleport(game.PlaceId)
-                    end
-                end)
-                
-                if not success then
-                    break
-                end
-            end
-        end)
-        
-        if Notify then
-            Notify.Send("Auto Rejoin", "Monitoring aktif!", 3)
-        end
-    else
-        if Notify then
-            Notify.Send("Auto Rejoin", "Monitoring dihentikan.", 3)
-        end
-    end
-end)
-
-makeButton(catServer, "🔄 Rejoin Now", function()
+makeButton(catServer, "🔄 Rejoin Server", function()
     pcall(function()
         game:GetService("TeleportService"):Teleport(game.PlaceId, game:GetService("Players").LocalPlayer)
     end)
