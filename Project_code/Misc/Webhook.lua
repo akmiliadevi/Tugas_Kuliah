@@ -85,6 +85,14 @@ local function debugPrint(...)
 end
 
 --------------------------------------------------
+-- GET PLAYER DISPLAY NAME
+--------------------------------------------------
+local function getPlayerDisplayName()
+    -- Gunakan DisplayName jika tersedia, fallback ke Name jika tidak
+    return LocalPlayer.DisplayName or LocalPlayer.Name
+end
+
+--------------------------------------------------
 -- DISCORD IMAGE URL
 --------------------------------------------------
 local function getDiscordImageUrl(assetId)
@@ -249,12 +257,14 @@ local function send(fish, meta, extra)
     
     local imageUrl = getFishImageUrl(fish)
     
+    -- PERUBAHAN UTAMA: Gunakan Display Name daripada Username
+    local playerDisplayName = getPlayerDisplayName()
     local mention = WebhookModule.Config.DiscordUserID ~= "" and "<@" .. WebhookModule.Config.DiscordUserID .. "> " or ""
     
     local congratsMsg = string.format(
         "%s **%s** You have obtained a new **%s** fish!",
         mention,
-        LocalPlayer.Name,
+        playerDisplayName,  -- Menggunakan Display Name
         tier
     )
     
