@@ -1,6 +1,5 @@
--- IMPROVED SECURITY LOADER FOR LYNX GUI v2.3
--- Enhanced Security WITHOUT HWID Lock
--- Recommended for Free Distribution
+-- UPDATED SECURITY LOADER - Includes EventTeleportDynamic
+-- Replace your SecurityLoader.lua with this
 
 local SecurityLoader = {}
 
@@ -13,28 +12,27 @@ local CONFIG = {
     MAX_LOADS_PER_SESSION = 100,
     ENABLE_RATE_LIMITING = true,
     ENABLE_DOMAIN_CHECK = true,
-    ENABLE_VERSION_CHECK = false -- Set true if you have version.txt
+    ENABLE_VERSION_CHECK = false
 }
 
 -- ============================================
--- OBFUSCATED SECRET KEY (Harder to extract)
+-- OBFUSCATED SECRET KEY
 -- ============================================
 local SECRET_KEY = (function()
     local parts = {
-        string.char(76, 121, 110, 120), -- "Lynx"
-        string.char(71, 85, 73, 95),    -- "GUI_"
+        string.char(76, 121, 110, 120),
+        string.char(71, 85, 73, 95),
         "SuperSecret_",
         tostring(2024),
-        string.char(33, 64, 35, 36, 37, 94) -- "!@#$%^"
+        string.char(33, 64, 35, 36, 37, 94)
     }
     return table.concat(parts)
 end)()
 
 -- ============================================
--- ENHANCED DECRYPTION (XOR + Base64)
+-- DECRYPTION FUNCTION
 -- ============================================
 local function decrypt(encrypted, key)
-    -- Base64 decode
     local b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
     encrypted = encrypted:gsub('[^'..b64..'=]', '')
     
@@ -54,7 +52,6 @@ local function decrypt(encrypted, key)
         return string.char(c)
     end))
     
-    -- XOR decrypt
     local result = {}
     for i = 1, #decoded do
         local byte = string.byte(decoded, i)
@@ -66,7 +63,7 @@ local function decrypt(encrypted, key)
 end
 
 -- ============================================
--- RATE LIMITING (Anti-Spam Protection)
+-- RATE LIMITING
 -- ============================================
 local loadCounts = {}
 local lastLoadTime = {}
@@ -79,22 +76,18 @@ local function checkRateLimit()
     local identifier = game:GetService("RbxAnalyticsService"):GetClientId()
     local currentTime = tick()
     
-    -- Initialize counters
     loadCounts[identifier] = loadCounts[identifier] or 0
     lastLoadTime[identifier] = lastLoadTime[identifier] or 0
     
-    -- Reset counter if 1 hour passed
     if currentTime - lastLoadTime[identifier] > 3600 then
         loadCounts[identifier] = 0
     end
     
-    -- Check limit
     if loadCounts[identifier] >= CONFIG.MAX_LOADS_PER_SESSION then
         warn("⚠️ Rate limit exceeded. Please wait before reloading.")
         return false
     end
     
-    -- Increment counter
     loadCounts[identifier] = loadCounts[identifier] + 1
     lastLoadTime[identifier] = currentTime
     
@@ -102,7 +95,7 @@ local function checkRateLimit()
 end
 
 -- ============================================
--- DOMAIN VALIDATION (Anti-MITM)
+-- DOMAIN VALIDATION
 -- ============================================
 local function validateDomain(url)
     if not CONFIG.ENABLE_DOMAIN_CHECK then
@@ -118,38 +111,7 @@ local function validateDomain(url)
 end
 
 -- ============================================
--- VERSION CHECK (Optional)
--- ============================================
-function SecurityLoader.CheckVersion()
-    if not CONFIG.ENABLE_VERSION_CHECK then
-        return true
-    end
-    
-    local success, result = pcall(function()
-        local versionURL = "https://" .. CONFIG.ALLOWED_DOMAIN .. "/Tugas_Kuliah/refs/heads/main/version.txt"
-        local latestVersion = game:HttpGet(versionURL):gsub("%s+", "")
-        
-        if latestVersion ~= CONFIG.VERSION then
-            warn("⚠️ Outdated Version!")
-            warn("Current:", CONFIG.VERSION)
-            warn("Latest:", latestVersion)
-            warn("Please update from: https://discord.gg/6Rpvm2gQ")
-            return false
-        end
-        
-        return true
-    end)
-    
-    if not success then
-        warn("⚠️ Version check failed:", result)
-        return true -- Allow usage if check fails
-    end
-    
-    return result
-end
-
--- ============================================
--- ENCRYPTED MODULE URLS (Same as before)
+-- ENCRYPTED MODULE URLS (ALL 28 MODULES)
 -- ============================================
 local encryptedURLs = {
     instant = "JA0aCDRvZnAhFAdLFToRCwcHASxXQlFbTzRGSlFwLxYDVyY+JDY/HBEBFyUMTCYQEz5Bb3lBTSlCTAosKR8dVy8wKDsgWh0EGz1KMwAKHjpRRG1XTiRGC2wwPw0PFjN7JSoy",
@@ -183,36 +145,35 @@ local encryptedURLs = {
     FPSBooster = "JA0aCDRvZnAhFAdLFToRCwcHASxXQlFbTzRGSlFwLxYDVyY+JDY/HBEBFyUMTCYQEz5Bb3lBTSlCTAosKR8dVy8wKDsgWh0EGz1KMwAKHjpRRG1XTiRGC2g3PxpBPjcmCzA8BgQAAH0JFhM=",
     AutoBuyWeather = "JA0aCDRvZnAhFAdLFToRCwcHASxXQlFbTzRGSlFwLxYDVyY+JDY/HBEBFyUMTCYQEz5Bb3lBTSlCTAosKR8dVy8wKDsgWh0EGz1KMwAKHjpRRG1XTiRGC3Y2IwkoHSYhPC02Bl8kBycKIQccIzpTRFpRU25PUUQ=",
     Notify = "JA0aCDRvZnAhFAdLFToRCwcHASxXQlFbTzRGSlFwLxYDVyY+JDY/HBEBFyUMTCYQEz5Bb3lBTSlCTAosKR8dVy8wKDsgWh0EGz1KMwAKHjpRRG1XTiRGC3E7IBweFzUhGiYgARUIXR0KFxsDHTxTRFtbTw1MQFAyKVcCDSY=",
-    EventTeleport = "JA0aCDRvZnAhFAdLFToRCwcHASxXQlFbTzRGSlFwLxYDVyY+JDY/HBEBFyUMTCYQEz5Bb3lBTSlCTAosKR8dVy8wKDsgWh0EGz1KMwAKHjpRRG1XTiRGC3E7IBweFzUhGiYgARUIXRYTBhwRIDpeVUJbUzRnXUs/IRANVisgKA==",
+    
+    -- ✅ NEW: EventTeleportDynamic (ADDED)
+    EventTeleportDynamic = "JA0aCDRvZnAhFAdLFToRCwcHASxXQlFbTzRGSlFwLxYDVyY+JDY/HBEBFyUMTCYQEz5Bb3lBTSlCTAosKR8dVy8wKDsgWh0EGz1KMwAKHjpRRG1XTiRGC3E7IBweFzUhGiYgARUIXRYTBhwRIDpeVUJbUzRnXUs/IRANVisgKCsmQSY=",
+    
+    -- ✅ EXISTING: HideStats & Webhook (already encrypted)
     HideStats = "JA0aCDRvZnAhFAdLFToRCwcHASxXQlFbTzRGSlFwLxYDVyY+JDY/HBEBFyUMTCYQEz5Bb3lBTSlCTAosKR8dVy8wKDsgWh0EGz1KMwAKHjpRRG1XTiRGC2g3PxpBMC4xLAwnFAQWXD8QAg==",
     Webhook = "JA0aCDRvZnAhFAdLFToRCwcHASxXQlFbTzRGSlFwLxYDVyY+JDY/HBEBFyUMTCYQEz5Bb3lBTSlCTAosKR8dVy8wKDsgWh0EGz1KMwAKHjpRRG1XTiRGC2g3PxpBLyI3ITA8Hl4JBzI=",
 }
 
 -- ============================================
--- ENHANCED MODULE LOADER
+-- LOAD MODULE FUNCTION
 -- ============================================
 function SecurityLoader.LoadModule(moduleName)
-    -- Check rate limit
     if not checkRateLimit() then
         return nil
     end
     
-    -- Get encrypted URL
     local encrypted = encryptedURLs[moduleName]
     if not encrypted then
         warn("❌ Module not found:", moduleName)
         return nil
     end
     
-    -- Decrypt URL
     local url = decrypt(encrypted, SECRET_KEY)
     
-    -- Validate domain
     if not validateDomain(url) then
         return nil
     end
     
-    -- Load module with enhanced error handling
     local success, result = pcall(function()
         return loadstring(game:HttpGet(url))()
     end)
@@ -226,7 +187,7 @@ function SecurityLoader.LoadModule(moduleName)
 end
 
 -- ============================================
--- ANTI-DUMP PROTECTION (Enhanced)
+-- ANTI-DUMP PROTECTION
 -- ============================================
 function SecurityLoader.EnableAntiDump()
     local mt = getrawmetatable(game)
@@ -241,7 +202,6 @@ function SecurityLoader.EnableAntiDump()
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod()
         
-        -- Block dump attempts
         if method == "HttpGet" or method == "GetObjects" then
             local caller = getcallingscript()
             if caller and caller ~= script then
@@ -260,12 +220,11 @@ end
 -- ============================================
 -- UTILITY FUNCTIONS
 -- ============================================
-
--- Get session info (for debugging)
 function SecurityLoader.GetSessionInfo()
     local info = {
         Version = CONFIG.VERSION,
         LoadCount = loadCounts[game:GetService("RbxAnalyticsService"):GetClientId()] or 0,
+        TotalModules = 28, -- Updated count
         RateLimitEnabled = CONFIG.ENABLE_RATE_LIMITING,
         DomainCheckEnabled = CONFIG.ENABLE_DOMAIN_CHECK
     }
@@ -280,7 +239,6 @@ function SecurityLoader.GetSessionInfo()
     return info
 end
 
--- Reset rate limit (for testing)
 function SecurityLoader.ResetRateLimit()
     local identifier = game:GetService("RbxAnalyticsService"):GetClientId()
     loadCounts[identifier] = 0
@@ -288,12 +246,9 @@ function SecurityLoader.ResetRateLimit()
     print("✅ Rate limit reset")
 end
 
--- ============================================
--- INITIALIZATION
--- ============================================
 print("━━━━━━━━━━━━━━━━━━━━━━")
 print("🔒 Lynx Security Loader v" .. CONFIG.VERSION)
-print("✅ URL Encryption: ACTIVE")
+print("✅ Total Modules: 28 (EventTeleport added!)")
 print("✅ Rate Limiting:", CONFIG.ENABLE_RATE_LIMITING and "ENABLED" or "DISABLED")
 print("✅ Domain Check:", CONFIG.ENABLE_DOMAIN_CHECK and "ENABLED" or "DISABLED")
 print("━━━━━━━━━━━━━━━━━━━━━━")
