@@ -4,6 +4,60 @@
 
 repeat task.wait() until game:IsLoaded()
 
+-- ============================================
+-- USAGE EXAMPLE - Paste at top of your GUI
+-- ============================================
+
+-- Load Security Loader (upload SecurityLoader.lua to GitHub first)
+local SecurityLoader = loadstring(game:HttpGet("YOUR_GITHUB_RAW_LINK_HERE"))()
+
+-- Enable protections
+SecurityLoader.EnableAntiDump()
+
+-- Validate HWID (if using whitelist)
+local allowed, msg = SecurityLoader.ValidateHWID()
+if not allowed then
+    warn(msg)
+    return
+end
+
+-- Load all modules (replace all your loadstring calls)
+local instant = SecurityLoader.LoadModule("instant")
+local instant2 = SecurityLoader.LoadModule("instant2")
+local blatantv1 = SecurityLoader.LoadModule("blatantv1")
+local UltraBlatant = SecurityLoader.LoadModule("UltraBlatant")
+local blatantv2 = SecurityLoader.LoadModule("blatantv2")
+local blatantv2fix = SecurityLoader.LoadModule("blatantv2fix")
+local NoFishingAnimation = SecurityLoader.LoadModule("NoFishingAnimation")
+local LockPosition = SecurityLoader.LoadModule("LockPosition")
+local AutoEquipRod = SecurityLoader.LoadModule("AutoEquipRod")
+local DisableCutscenes = SecurityLoader.LoadModule("DisableCutscenes")
+local DisableExtras = SecurityLoader.LoadModule("DisableExtras")
+local AutoTotem3X = SecurityLoader.LoadModule("AutoTotem3X")
+local SkinAnimation = SecurityLoader.LoadModule("SkinAnimation")
+local WalkOnWater = SecurityLoader.LoadModule("WalkOnWater")
+local TeleportModule = SecurityLoader.LoadModule("TeleportModule")
+local TeleportToPlayer = SecurityLoader.LoadModule("TeleportToPlayer")
+local SavedLocation = SecurityLoader.LoadModule("SavedLocation")
+local AutoQuestModule = SecurityLoader.LoadModule("AutoQuestModule")
+local AutoTemple = SecurityLoader.LoadModule("AutoTemple")
+local TempleDataReader = SecurityLoader.LoadModule("TempleDataReader")
+local AutoSell = SecurityLoader.LoadModule("AutoSell")
+local AutoSellTimer = SecurityLoader.LoadModule("AutoSellTimer")
+local MerchantSystem = SecurityLoader.LoadModule("MerchantSystem")
+local RemoteBuyer = SecurityLoader.LoadModule("RemoteBuyer")
+local FreecamModule = SecurityLoader.LoadModule("FreecamModule")
+local UnlimitedZoomModule = SecurityLoader.LoadModule("UnlimitedZoomModule")
+local AntiAFK = SecurityLoader.LoadModule("AntiAFK")
+local UnlockFPS = SecurityLoader.LoadModule("UnlockFPS")
+local FPSBooster = SecurityLoader.LoadModule("FPSBooster")
+local AutoBuyWeather = SecurityLoader.LoadModule("AutoBuyWeather")
+local Notify = SecurityLoader.LoadModule("Notify")
+
+-- Continue with rest of your GUI code...
+print("✅ All modules loaded securely!")
+
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -21,45 +75,7 @@ local function new(class, props)
     return inst
 end
 
--- Load modules
-local instant = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Instant.lua"))()
-local instant2 = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Instant2.lua"))()
-local blatantv1 = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/BlatantV1.lua"))()
-local UltraBlatant = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/BlatantV2.lua"))()
-local blatantv2 = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/BlatantV2.lua"))()
-local blatantv2fix = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/BlatantFixedV1.lua"))()
 
-local NoFishingAnimation = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/NoFishingAnimation.lua"))()
-local LockPosition = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/LockPosition.lua"))()
-local AutoEquipRod = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/AutoEquipRod.lua"))()
-local DisableCutscenes = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/DisableCutscenes.lua"))()
-local DisableExtras = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/DisableExtras.lua"))()
-local AutoTotem3X = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/AutoTotem3x.lua"))()
-local SkinAnimation = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/SkinSwapAnimation.lua"))()
-local WalkOnWater = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/WalkOnWater.lua"))()
--- Teleport
-local TeleportModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/TeleportModule.lua"))()
-local TeleportToPlayer = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/TeleportSystem/TeleportToPlayer.lua"))()
-local SavedLocation = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/TeleportSystem/SavedLocation.lua"))()
--- Quest page
-local AutoQuestModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Quest/AutoQuestModule.lua"))()
-local AutoTemple = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Quest/LeverQuest.lua"))()
-local TempleDataReader = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Quest/TempleDataReader.lua"))()
-
--- Shop
-local AutoSell = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/ShopFeatures/AutoSell.lua"))()
-local AutoSellTimer = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/ShopFeatures/AutoSellTimer.lua"))()
-local MerchantSystem = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/ShopFeatures/OpenShop.lua"))()
-local RemoteBuyer = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/ShopFeatures/RemoteBuyer.lua"))()
--- Camera View
-local FreecamModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Camera%20View/FreecamModule.lua"))()
-local UnlimitedZoomModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Camera%20View/UnlimitedZoom.lua"))()
--- Misc
-local AntiAFK = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Misc/AntiAFK.lua"))()
-local UnlockFPS = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Misc/UnlockFPS.lua"))()
-local FPSBooster = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Misc/FpsBooster.lua"))()
-local AutoBuyWeather = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/ShopFeatures/AutoBuyWeather.lua"))()
-local Notify = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/TeleportSystem/NotificationModule.lua"))()
 
 -- Galaxy Color Palette
 local colors = {
