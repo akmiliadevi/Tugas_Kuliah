@@ -8,10 +8,42 @@ repeat task.wait() until game:IsLoaded()
 -- USAGE EXAMPLE - Paste at top of your GUI
 -- ============================================
 
--- Load Security Loader
-local SecurityLoader = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/SecurityLoader.lua"))()
+-- ============================================
+-- LOAD SECURITY LOADER DENGAN SAFETY CHECK
+-- ============================================
 
--- ✨ Table untuk menyimpan modules
+local SecurityLoader
+local maxRetries = 5
+local retryCount = 0
+
+repeat
+    local success, result = pcall(function()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/SecurityLoader.lua"))()
+    end)
+    
+    if success and result then
+        SecurityLoader = result
+        print("✅ SecurityLoader loaded successfully!")
+        break
+    else
+        retryCount = retryCount + 1
+        warn("⚠️ SecurityLoader load attempt " .. retryCount .. "/" .. maxRetries .. " failed: " .. tostring(result))
+        
+        if retryCount >= maxRetries then
+            error("❌ FATAL: SecurityLoader failed to load after " .. maxRetries .. " attempts. Check your internet connection or GitHub link!")
+        end
+        
+        task.wait(2) -- Wait 2 seconds before retry
+    end
+until SecurityLoader
+
+-- Validate SecurityLoader has LoadModule function
+if not SecurityLoader or type(SecurityLoader.LoadModule) ~= "function" then
+    error("❌ FATAL: SecurityLoader loaded but LoadModule function is missing!")
+end
+
+print("🔐 SecurityLoader ready. Starting module loading...")
+
 local Modules = {}
 
 -- ✨ Function untuk load module secara async
