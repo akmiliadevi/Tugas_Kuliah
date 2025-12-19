@@ -8,113 +8,6 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-
--- ============================================
--- ENCRYPTED RAW URL LOADER
--- ============================================
-
-local SECRET_KEY = "akmilia_wiranti_devi" -- SAMAKAN DENGAN PYTHON ENCRYPTOR
-local HttpService = game:GetService("HttpService")
-
-local function decrypt(enc)
-    local decoded = HttpService:Base64Decode(enc)
-    local reversed = decoded:reverse()
-
-    local out = {}
-    for i = 1, #reversed do
-        local b = string.byte(reversed, i) - 3
-        local k = string.byte(SECRET_KEY, ((i - 1) % #SECRET_KEY) + 1)
-        out[i] = string.char(bit32.bxor(b, k))
-    end
-
-    return table.concat(out)
-end
-
--- ⬇️ GANTI FUNGSI INI (BARIS 42-44)
-local function LoadEncrypted(enc)
-    local success, decryptedUrl = pcall(function()
-        return decrypt(enc)
-    end)
-    
-    if not success then
-        warn("❌ Dekripsi gagal:", decryptedUrl)
-        return nil
-    end
-    
-    if not decryptedUrl or decryptedUrl == "" then
-        warn("❌ URL dekripsi kosong!")
-        return nil
-    end
-    
-    print("✅ Decrypted URL:", decryptedUrl)
-    
-    local success2, result = pcall(function()
-        return loadstring(game:HttpGet(decryptedUrl))()
-    end)
-    
-    if not success2 then
-        warn("❌ Load module gagal:", result)
-        return nil
-    end
-    
-    return result
-end
-
--- ============================================
--- ENCRYPTED RAW LINKS
--- (PASTE HASIL ENKRIPSI DI SINI SAJA)
--- ============================================
-
-local URLS = {
-
-    -- Core
-    Instant              = "GhMLdCAHChYUHVs0CwsESQUeBx5cGgQvH14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-    Instant2             = "CwYMTXAgHRIYBApBcwcQBg01IgUPHw0ZEkkdCgMiSQc+Aw8HSSEQBx5cEAg5CAQoQQQLEy04SQgiCxIDAx0PDDcLXgYRFEoGNAcgBQkRHAcdBgoUOiAgDFIICwhzUVYiHBwiDA==",
-    BlatantV1            = "Ax8DSl9AGAoaFAg2Ll4SDxYgJXMHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-    BlatantV2            = "Ax8DSmJAGAoaFAg2Ll4SDxYgJXMHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-    BlatantV2old         = "QR8bQxIgAwZBDwMFKw0ICwQIDyUzKl4SDxYgJXMHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-    BlatantV2Fix         = "AwoIXHE6EAwUBzAYChoUCDYuXhIPFiAlcwcQBg01IgUPHw0ZEkkdCgMiSQc+Aw8HSSEQBx5cEAg5CAQoQQQLEy04SQgiCxIDAx0PDDcLXgYRFEoGNAcgBQkRHAcdBgoUOiAgDFIICwhzUVYiHBwiDA==",
-
-    -- Gameplay
-    NoFishingAnimation   = "QR8bQxIgAwZBDwMFKw0ICwQIDyUzKl4SDxYgJXMHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-    LockPosition         = "CwU2UgoGAxwFFQkpEQozKF4SDxYgJXMHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-    AutoEquipRod         = "CwU2UhAGPiAFFxs2DRMtK14SDxYgJXMHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-    DisableCutscenes     = "GB4QXx0VNAcNIiAbKwcIFwcaOTBeEg8WICVzBxAGDTUiBQ8fDRkSSR0KAyJJBz4DDwdJIRAHHlwQCDkIBChBBAsTLThJCCILEgMDHQ8MNwteBhEUSgY0ByAFCREcBx0GChQ6ICAMUggLCHNRViIcHCIM",
-    DisableExtras        = "Fh8edBULISAYMQcIFwcaOTBeEg8WICVzBxAGDTUiBQ8fDRkSSR0KAyJJBz4DDwdJIRAHHlwQCDkIBChBBAsTLThJCCILEgMDHQ8MNwteBhEUSgY0ByAFCREcBx0GChQ6ICAMUggLCHNRViIcHCIM",
-    AutoTotem3X          = "GS0QShddAxEYCSUNEy0rXhIPFiAlcwcQBg01IgUPHw0ZEkkdCgMiSQc+Aw8HSSEQBx5cEAg5CAQoQQQLEy04SQgiCxIDAx0PDDcLXgYRFEoGNAcgBQkRHAcdBgoUOiAgDFIICwhzUVYiHBwiDA==",
-    SkinAnimation        = "CwQFUh8JIS4DBwgKLx4DISgOEDc9XhIPFiAlcwcQBg01IgUPHw0ZEkkdCgMiSQc+Aw8HSSEQBx5cEAg5CAQoQQQLEy04SQgiCxIDAx0PDDcLXgYRFEoGNAcgBQkRHAcdBgoUOiAgDFIICwhzUVYiHBwiDA==",
-    WalkOnWater          = "GS0QSiEPHA05CjwRC0FBXhIPFiAlcwcQBg01IgUPHw0ZEkkdCgMiSQc+Aw8HSSEQBx5cEAg5CAQoQQQLEy04SQgiCxIDAx0PDDcLXgYRFEoGNAcgBQkRHAcdBgoUOiAgDFIICwhzUVYiHBwiDA==",
-    -- GoodPerfectionStable = "AwoIXD4RCS4KBQUYDRYGGT08XhIPFiAlcwcQBg01IgUPHw0ZEkkdCgMiSQc+Aw8HSSEQBx5cEAg5CAQoQQQLEy04SQgiCxIDAx0PDDcLXgYRFEoGNAcgBQkRHAcdBgoUOiAgDFIICwhzUVYiHBwiDA==",
-
-    -- Teleport
-    TeleportModule       = "CxwIRhEQHxUNLC4eHiEHIQ8mcwcQBg01IgUPHw0ZEkkdCgMiSQc+Aw8HSSEQBx5cEAg5CAQoQQQLEy04SQgiCxIDAx0PDDcLXgYRFEoGNAcgBQkRHAcdBgoUOiAgDFIICwhzUVYiHBwiDA==",
-    TeleportToPlayer     = "DyEQSgcDIEEIJwQ4CR4bMgcIDEBFCQcgCB86Lh4eIQchDyZzBxAGDTUiBQ8fDRkSSR0KAyJJBz4DDwdJIRAHHlwQCDkIBChBBAsTLThJCCILEgMDHQ8MNwteBhEUSgY0ByAFCREcBx0GChQ6ICAMUggLCHNRViIcHCIM",
-    SavedLocation        = "CwYMTTQJIB0DFAk+PgciED1FCQcgCB86Lh4eIQchDyZzBxAGDTUiBQ8fDRkSSR0KAyJJBz4DDwdJIRAHHlwQCDkIBChBBAsTLThJCCILEgMDHQ8MNwteBhEUSgY0ByAFCREcBx0GChQ6ICAMUggLCHNRViIcHCIM",
-
-    -- Quest
-    AutoQuestModule      = "EhchShU2FxAGJxwbBx8qDRMtK14dFRofKXMHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-    AutoTemple           = "QRcIRSAhERc7BwMVPSheHRUaHylzBxAGDTUiBQ8fDRkSSR0KAyJJBz4DDwdJIRAHHlwQCDkIBChBBAsTLThJCCILEgMDHQ8MNwteBhEUSgY0ByAFCREcBx0GChQ6ICAMUggLCHNRViIcHCIM",
-    TempleDataReader     = "GB4QXx4VPgMPQQscDSgPHRgMPUBeHRUaHylzBxAGDTUiBQ8fDRkSSR0KAyJJBz4DDwdJIRAHHlwQCDkIBChBBAsTLThJCCILEgMDHQ8MNwteBhEUSgY0ByAFCREcBx0GChQ6ICAMUggLCHNRViIcHCIM",
-
-    -- Shop
-    AutoSell             = "EhchSh42Bz0GIBstUR0WGhQuCxQrFCAEJ3MHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-    AutoSellTimer        = "BxQ2SgkODx5AHjYHPQYgGy1RHRYaFC4LFCsUIAQncwcQBg01IgUPHw0ZEkkdCgMiSQc+Aw8HSSEQBx5cEAg5CAQoQQQLEy04SQgiCxIDAx0PDDcLXgYRFEoGNAcgBQkRHAcdBgoUOiAgDFIICwhzUVYiHBwiDA==",
-    MerchantSystem       = "EhchSgozDD0FDyAnUR0WGhQuCxQrFCAEJ3MHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-    RemoteBuyer          = "QR8bQxYaEwUgByAGBws8UR0WGhQuCxQrFCAEJ3MHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-
-    -- Camera
-    FreecamModule        = "GhMLdA8bHgggJx1BBQ8MHi5HGQ8iNldwTxgfByILN3MHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-    UnlimitedZoomModule  = "GhMLdAceBD4ZDwY5DwMDCjtHGQ8iNldwTxgfByILN3MHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-
-    -- Misc
-    AntiAFK              = "CxsKUiUzJxAuCjhEBQQDPXMHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-    UnlockFPS            = "CxwIRjs0MiAJDjYKJEQFBAM9cwcQBg01IgUPHw0ZEkkdCgMiSQc+Aw8HSSEQBx5cEAg5CAQoQQQLEy04SQgiCxIDAx0PDDcLXgYRFEoGNAcgBQkRHAcdBgoUOiAgDFIICwhzUVYiHBwiDA==",
-    FPSBooster           = "Ax8DSiIRGB0cDSkvHDVEBQQDPXMHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-    AutoBuyWeather       = "GhMLdB4UCRgWDyMpFy4GIBstUR0WGhQuCxQrFCAEJ3MHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-    Notify               = "EB8ESAcIBgQOFQoeChgWDSE8CyAGKkUJByAIHzouHh4hByEPJnMHEAYNNSIFDx8NGRJJHQoDIkkHPgMPB0khEAceXBAIOQgEKEEECxMtOEkIIgsSAwMdDww3C14GERRKBjQHIAUJERwHHQYKFDogIAxSCAsIc1FWIhwcIgw=",
-}
-
-
 local localPlayer = Players.LocalPlayer
 
 repeat task.wait() until localPlayer:FindFirstChild("PlayerGui")
@@ -128,80 +21,45 @@ local function new(class, props)
     return inst
 end
 
--- ============================================
--- LOAD MODULES WITH ERROR HANDLING
--- ============================================
+-- Load modules
+local instant = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Instant.lua"))()
+local instant2 = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Instant2.lua"))()
+local blatantv1 = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/BlatantV1.lua"))()
+local UltraBlatant = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/BlatantV2.lua"))()
+local blatantv2 = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/BlatantV2.lua"))()
+local blatantv2fix = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/BlatantFixedV1.lua"))()
 
-local function SafeLoadModule(name, encryptedUrl)
-    local success, module = pcall(function()
-        return LoadEncrypted(encryptedUrl)
-    end)
-    
-    if success and module and type(module) == "table" then
-        print("✅ Module loaded:", name)
-        return module
-    else
-        warn("❌ Failed to load module:", name, tostring(module))
-        -- Return dummy module dengan SEMUA functions yang mungkin dipanggil
-        return setmetatable({}, {
-            __index = function(t, k)
-                -- Return function dummy untuk semua calls
-                if k == "Settings" then
-                    return setmetatable({}, {
-                        __index = function() return 0 end,
-                        __newindex = function() end
-                    })
-                elseif k == "Locations" then
-                    return {}
-                else
-                    return function(...) 
-                        warn(name .. "." .. k .. " not loaded")
-                        return false
-                    end
-                end
-            end
-        })
-    end
-end
+local NoFishingAnimation = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/NoFishingAnimation.lua"))()
+local LockPosition = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/LockPosition.lua"))()
+local AutoEquipRod = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/AutoEquipRod.lua"))()
+local DisableCutscenes = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/DisableCutscenes.lua"))()
+local DisableExtras = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/DisableExtras.lua"))()
+local AutoTotem3X = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/AutoTotem3x.lua"))()
+local SkinAnimation = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/SkinSwapAnimation.lua"))()
+local WalkOnWater = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Utama/WalkOnWater.lua"))()
+-- Teleport
+local TeleportModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/TeleportModule.lua"))()
+local TeleportToPlayer = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/TeleportSystem/TeleportToPlayer.lua"))()
+local SavedLocation = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/TeleportSystem/SavedLocation.lua"))()
+-- Quest page
+local AutoQuestModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Quest/AutoQuestModule.lua"))()
+local AutoTemple = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Quest/LeverQuest.lua"))()
+local TempleDataReader = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Quest/TempleDataReader.lua"))()
 
--- ⬇️ GANTI SEMUA BARIS LOAD MODULE SEPERTI INI
-local instant              = SafeLoadModule("Instant", URLS.Instant)
-local instant2             = SafeLoadModule("Instant2", URLS.Instant2)
-local blatantv1            = SafeLoadModule("BlatantV1", URLS.BlatantV1)
-local UltraBlatant         = SafeLoadModule("UltraBlatant", URLS.BlatantV2)
-local blatantv2            = SafeLoadModule("BlatantV2", URLS.BlatantV2old)
-local blatantv2fix         = SafeLoadModule("BlatantV2Fix", URLS.BlatantV2Fix)
-
-local NoFishingAnimation   = SafeLoadModule("NoFishingAnimation", URLS.NoFishingAnimation)
-local LockPosition         = SafeLoadModule("LockPosition", URLS.LockPosition)
-local AutoEquipRod         = SafeLoadModule("AutoEquipRod", URLS.AutoEquipRod)
-local DisableCutscenes     = SafeLoadModule("DisableCutscenes", URLS.DisableCutscenes)
-local DisableExtras        = SafeLoadModule("DisableExtras", URLS.DisableExtras)
-local AutoTotem3X          = SafeLoadModule("AutoTotem3X", URLS.AutoTotem3X)
-local SkinAnimation        = SafeLoadModule("SkinAnimation", URLS.SkinAnimation)
-local WalkOnWater          = SafeLoadModule("WalkOnWater", URLS.WalkOnWater)
-
-local TeleportModule       = SafeLoadModule("TeleportModule", URLS.TeleportModule)
-local TeleportToPlayer     = SafeLoadModule("TeleportToPlayer", URLS.TeleportToPlayer)
-local SavedLocation        = SafeLoadModule("SavedLocation", URLS.SavedLocation)
-
-local AutoQuestModule      = SafeLoadModule("AutoQuestModule", URLS.AutoQuestModule)
-local AutoTemple           = SafeLoadModule("AutoTemple", URLS.AutoTemple)
-local TempleDataReader     = SafeLoadModule("TempleDataReader", URLS.TempleDataReader)
-
-local AutoSell             = SafeLoadModule("AutoSell", URLS.AutoSell)
-local AutoSellTimer        = SafeLoadModule("AutoSellTimer", URLS.AutoSellTimer)
-local MerchantSystem       = SafeLoadModule("MerchantSystem", URLS.MerchantSystem)
-local RemoteBuyer          = SafeLoadModule("RemoteBuyer", URLS.RemoteBuyer)
-
-local FreecamModule        = SafeLoadModule("FreecamModule", URLS.FreecamModule)
-local UnlimitedZoomModule  = SafeLoadModule("UnlimitedZoomModule", URLS.UnlimitedZoomModule)
-
-local AntiAFK              = SafeLoadModule("AntiAFK", URLS.AntiAFK)
-local UnlockFPS            = SafeLoadModule("UnlockFPS", URLS.UnlockFPS)
-local FPSBooster           = SafeLoadModule("FPSBooster", URLS.FPSBooster)
-local AutoBuyWeather       = SafeLoadModule("AutoBuyWeather", URLS.AutoBuyWeather)
-local Notify               = SafeLoadModule("Notify", URLS.Notify)
+-- Shop
+local AutoSell = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/ShopFeatures/AutoSell.lua"))()
+local AutoSellTimer = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/ShopFeatures/AutoSellTimer.lua"))()
+local MerchantSystem = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/ShopFeatures/OpenShop.lua"))()
+local RemoteBuyer = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/ShopFeatures/RemoteBuyer.lua"))()
+-- Camera View
+local FreecamModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Camera%20View/FreecamModule.lua"))()
+local UnlimitedZoomModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Camera%20View/UnlimitedZoom.lua"))()
+-- Misc
+local AntiAFK = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Misc/AntiAFK.lua"))()
+local UnlockFPS = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Misc/UnlockFPS.lua"))()
+local FPSBooster = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/Misc/FpsBooster.lua"))()
+local AutoBuyWeather = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/ShopFeatures/AutoBuyWeather.lua"))()
+local Notify = loadstring(game:HttpGet("https://raw.githubusercontent.com/akmiliadevi/Tugas_Kuliah/refs/heads/main/Project_code/TeleportSystem/NotificationModule.lua"))()
 
 -- Galaxy Color Palette
 local colors = {
@@ -1283,68 +1141,62 @@ end
 -- BAGIAN 3 (FINAL): Features, Pages Content, Minimize System, Animations
 
 -- ==== MAIN PAGE ====
--- ==== MAIN PAGE ====
 local catAutoFishing = makeCategory(mainPage, "Auto Fishing", "🎣")
 local currentInstantMode = "None"
 local fishingDelayValue = 1.30
 local cancelDelayValue = 0.19
-local isInstantFishingEnabled = false
+local isInstantFishingEnabled = false -- Tambahkan variabel untuk melacak status toggle
 
 makeDropdown(catAutoFishing, "Instant Fishing Mode", "⚡", {"Fast", "Perfect"}, function(mode)
     currentInstantMode = mode
+    instant.Stop()
+    instant2.Stop()
     
-    -- Safety check sebelum akses module
-    if instant and instant.Stop then instant.Stop() end
-    if instant2 and instant2.Stop then instant2.Stop() end
-    
+    -- Hanya start jika toggle sudah diaktifkan
     if isInstantFishingEnabled then
-        if mode == "Fast" and instant and instant.Settings and instant.Start then
+        if mode == "Fast" then
             instant.Settings.MaxWaitTime = fishingDelayValue
             instant.Settings.CancelDelay = cancelDelayValue
             instant.Start()
-        elseif mode == "Perfect" and instant2 and instant2.Settings and instant2.Start then
+        elseif mode == "Perfect" then
             instant2.Settings.MaxWaitTime = fishingDelayValue
             instant2.Settings.CancelDelay = cancelDelayValue
             instant2.Start()
         end
     else
-        -- Update settings saja
-        if instant and instant.Settings then
-            instant.Settings.MaxWaitTime = fishingDelayValue
-            instant.Settings.CancelDelay = cancelDelayValue
-        end
-        if instant2 and instant2.Settings then
-            instant2.Settings.MaxWaitTime = fishingDelayValue
-            instant2.Settings.CancelDelay = cancelDelayValue
-        end
+        -- Jika toggle belum aktif, hanya update settings tanpa start
+        instant.Settings.MaxWaitTime = fishingDelayValue
+        instant.Settings.CancelDelay = cancelDelayValue
+        instant2.Settings.MaxWaitTime = fishingDelayValue
+        instant2.Settings.CancelDelay = cancelDelayValue
     end
 end, "InstantFishingMode")
 
 makeToggle(catAutoFishing, "Enable Instant Fishing", function(on)
-    isInstantFishingEnabled = on
+    isInstantFishingEnabled = on -- Update status toggle
     
     if on then
-        if currentInstantMode == "Fast" and instant and instant.Start then
+        if currentInstantMode == "Fast" then
             instant.Start()
-        elseif currentInstantMode == "Perfect" and instant2 and instant2.Start then
+        elseif currentInstantMode == "Perfect" then
             instant2.Start()
         end
     else
-        if instant and instant.Stop then instant.Stop() end
-        if instant2 and instant2.Stop then instant2.Stop() end
+        instant.Stop()
+        instant2.Stop()
     end
 end)
 
 makeInput(catAutoFishing, "Fishing Delay", 1.30, function(v)
     fishingDelayValue = v
-    if instant and instant.Settings then instant.Settings.MaxWaitTime = v end
-    if instant2 and instant2.Settings then instant2.Settings.MaxWaitTime = v end
+    instant.Settings.MaxWaitTime = v
+    instant2.Settings.MaxWaitTime = v
 end)
 
 makeInput(catAutoFishing, "Cancel Delay", 0.19, function(v)
     cancelDelayValue = v
-    if instant and instant.Settings then instant.Settings.CancelDelay = v end
-    if instant2 and instant2.Settings then instant2.Settings.CancelDelay = v end
+    instant.Settings.CancelDelay = v
+    instant2.Settings.CancelDelay = v
 end)
 
 local catBlatantV2 = makeCategory(mainPage, "Blatant Tester", "🎯")
@@ -3789,24 +3641,6 @@ task.spawn(function()
         BackgroundTransparency=0.25  -- Lebih transparan dari 0.15
     }):Play()
 end)
-
--- ==== DEBUG MODULE STATUS ====
-print("\n🔍 MODULE LOAD STATUS:")
-print("━━━━━━━━━━━━━━━━━━━━━━")
-
-local testModules = {
-    {name="Instant", module=instant},
-    {name="Notify", module=Notify},
-    {name="TeleportModule", module=TeleportModule},
-    {name="AutoQuestModule", module=AutoQuestModule}
-}
-
-for _, m in ipairs(testModules) do
-    local status = m.module and type(m.module) == "table" and "✅ OK" or "❌ FAIL"
-    print(status, m.name)
-end
-
-print("━━━━━━━━━━━━━━━━━━━━━━\n")
 
 print("━━━━━━━━━━━━━━━━━━━━━━")
 print("✨ Lynx GUI v2.3 ")
