@@ -2373,57 +2373,45 @@ end)
 -- ==== SERVER MANAGEMENT ====
 local catServer = makeCategory(settingsPage, "Server Features", "🔄")
 
--- Variable untuk menyimpan connection
 local autoRejoinEnabled = false
-local disconnectConnection = nil
 
 makeToggle(catServer, "Auto Rejoin on Disconnect", function(on)
     autoRejoinEnabled = on
     
     if on then
-        -- Disconnect listener lama jika ada
-        if disconnectConnection then
-            disconnectConnection:Disconnect()
-        end
-        
-        -- Monitor player saat disconnect
-        disconnectConnection = game:GetService("Players").LocalPlayer.AncestryChanged:Connect(function(_, parent)
-            if not parent and autoRejoinEnabled then
-                task.wait(0.5)
-                pcall(function()
-                    game:GetService("TeleportService"):Teleport(game.PlaceId)
+        task.spawn(function()
+            while autoRejoinEnabled and task.wait(1) do
+                local success = pcall(function()
+                    local player = game:GetService("Players").LocalPlayer
+                    if not player or not player.Parent then
+                        task.wait(1)
+                        game:GetService("TeleportService"):Teleport(game.PlaceId)
+                    end
                 end)
+                
+                if not success then
+                    break
+                end
             end
         end)
         
         if Notify then
-            Notify.Send("Auto Rejoin 🔄", "Auto rejoin on disconnect AKTIF!", 4)
+            Notify.Send("Auto Rejoin", "Monitoring aktif!", 3)
         end
-        
     else
-        autoRejoinEnabled = false
-        
-        if disconnectConnection then
-            disconnectConnection:Disconnect()
-            disconnectConnection = nil
-        end
-        
         if Notify then
-            Notify.Send("Auto Rejoin 🔄", "Auto rejoin on disconnect DIMATIKAN.", 3)
+            Notify.Send("Auto Rejoin", "Monitoring dihentikan.", 3)
         end
     end
 end)
 
 makeButton(catServer, "🔄 Rejoin Now", function()
-    local TeleportService = game:GetService("TeleportService")
-    local LocalPlayer = game:GetService("Players").LocalPlayer
-    
     pcall(function()
-        TeleportService:Teleport(game.PlaceId, LocalPlayer)
+        game:GetService("TeleportService"):Teleport(game.PlaceId, game:GetService("Players").LocalPlayer)
     end)
     
     if Notify then
-        Notify.Send("Rejoin 🔄", "Teleporting to new server...", 3)
+        Notify.Send("Rejoin 🔄", "Rejoining server...", 3)
     end
 end)
 
