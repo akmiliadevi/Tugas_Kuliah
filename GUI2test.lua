@@ -2169,13 +2169,27 @@ end
 -- ============================================
 
 -- ============================================
--- WEBHOOK PAGE - FIXED VERSION
+-- WEBHOOK PAGE - FIXED WITH COLON SYNTAX
 -- ============================================
 local WebhookModule = GetModule("Webhook")
 
+-- Debug check
+task.spawn(function()
+    task.wait(3)
+    if WebhookModule then
+        print("✅ Webhook module loaded")
+        print("   Type:", type(WebhookModule))
+        for k, v in pairs(WebhookModule) do
+            print("   -", k, ":", type(v))
+        end
+    else
+        warn("❌ Webhook module is nil!")
+    end
+end)
+
 local catWebhook = makeCategory(webhookPage, "Discord Webhook Fish Caught", "🔔")
 
--- Info Container
+-- Info Container (sama seperti sebelumnya)
 local webhookInfoContainer = new("Frame", {
     Parent = catWebhook,
     Size = UDim2.new(1, 0, 0, 85),
@@ -2203,7 +2217,7 @@ local webhookInfoText = new("TextLabel", {
     ZIndex = 8
 })
 
--- Webhook URL Input Container
+-- Webhook URL Input
 local currentWebhookURL = ""
 local webhookInputContainer = new("Frame", {
     Parent = catWebhook,
@@ -2252,15 +2266,23 @@ new("UICorner", {Parent = webhookTextBox, CornerRadius = UDim.new(0, 6)})
 new("UIStroke", {Parent = webhookTextBox, Color = colors.border, Thickness = 1, Transparency = 0.9})
 new("UIPadding", {Parent = webhookTextBox, PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8)})
 
+-- ✅ CRITICAL FIX: Gunakan titik dua (:) untuk method calls
 webhookTextBox.FocusLost:Connect(function()
     currentWebhookURL = webhookTextBox.Text
     if WebhookModule and currentWebhookURL ~= "" then
-        WebhookModule.SetWebhookURL(currentWebhookURL)
-        SendNotification("Webhook", "Webhook URL tersimpan!", 2)
+        local success = pcall(function()
+            WebhookModule:SetWebhookURL(currentWebhookURL)  -- ✅ Pakai : bukan .
+        end)
+        if success then
+            SendNotification("Webhook", "Webhook URL tersimpan!", 2)
+            print("✅ Webhook URL set:", currentWebhookURL)
+        else
+            warn("❌ Failed to set webhook URL")
+        end
     end
 end)
 
--- Discord User ID Input Container
+-- Discord User ID Input
 local currentDiscordID = ""
 local discordIDContainer = new("Frame", {
     Parent = catWebhook,
@@ -2312,14 +2334,16 @@ new("UIPadding", {Parent = discordIDTextBox, PaddingLeft = UDim.new(0, 8), Paddi
 discordIDTextBox.FocusLost:Connect(function()
     currentDiscordID = discordIDTextBox.Text
     if WebhookModule then
-        WebhookModule.SetDiscordUserID(currentDiscordID)
+        pcall(function()
+            WebhookModule:SetDiscordUserID(currentDiscordID)  -- ✅ Pakai :
+        end)
         if currentDiscordID ~= "" then
             SendNotification("Webhook", "Discord ID tersimpan!", 2)
         end
     end
 end)
 
--- Rarity Filter Info
+-- Rarity Filter
 local rarityInfoContainer = new("Frame", {
     Parent = catWebhook,
     Size = UDim2.new(1, 0, 0, 80),
@@ -2347,7 +2371,6 @@ local rarityInfoText = new("TextLabel", {
     ZIndex = 8
 })
 
--- Rarity Checkboxes Container
 local AllRarities = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "SECRET"}
 local selectedRarities = {}
 
@@ -2452,9 +2475,11 @@ local function createRarityCheckbox(parent, rarityName, yPos)
             }):Play()
         end
         
-        -- CRITICAL FIX: Update module IMMEDIATELY
+        -- ✅ CRITICAL FIX: Update rarities dengan titik dua
         if WebhookModule then
-            WebhookModule.SetEnabledRarities(selectedRarities)
+            pcall(function()
+                WebhookModule:SetEnabledRarities(selectedRarities)  -- ✅ Pakai :
+            end)
             print("✅ Rarity filter updated:", table.concat(selectedRarities, ", "))
         end
     end)
@@ -2471,7 +2496,6 @@ for i, rarityName in ipairs(AllRarities) do
     checkboxes[rarityName] = createRarityCheckbox(checkboxContainer, rarityName, (i - 1) * 33 + 5)
 end
 
--- Quick Selection Buttons
 makeButton(catWebhook, "✓ Select All Rarities", function()
     for _, rarity in ipairs(AllRarities) do
         if checkboxes[rarity] and not checkboxes[rarity].isSelected() then
@@ -2503,39 +2527,45 @@ makeButton(catWebhook, "⭐ Select High Rarity Only", function()
     SendNotification("Rarity Filter", "High rarities selected!", 3)
 end)
 
--- Enable Webhook Toggle - FIXED
+-- ✅ CRITICAL FIX: Enable Webhook Toggle
 makeToggle(catWebhook, "Enable Webhook", function(on)
-    if WebhookModule then
-        if on then
-            if currentWebhookURL == "" then
-                SendNotification("Error", "Masukkan Webhook URL dulu!", 3)
-                return
-            end
-            
-            -- Set URL and rarities BEFORE starting
-            WebhookModule.SetWebhookURL(currentWebhookURL)
+    if not WebhookModule then
+        SendNotification("Error", "Webhook module tidak tersedia!", 3)
+        return
+    end
+    
+    if on then
+        if currentWebhookURL == "" then
+            SendNotification("Error", "Masukkan Webhook URL dulu!", 3)
+            return
+        end
+        
+        -- Set semua config sebelum start
+        local success = pcall(function()
+            WebhookModule:SetWebhookURL(currentWebhookURL)  -- ✅ Pakai :
             if currentDiscordID ~= "" then
-                WebhookModule.SetDiscordUserID(currentDiscordID)
+                WebhookModule:SetDiscordUserID(currentDiscordID)  -- ✅ Pakai :
             end
-            WebhookModule.SetEnabledRarities(selectedRarities)
-            
-            local success = WebhookModule.Start()
-            if success then
-                local filterInfo = #selectedRarities > 0 
-                    and (" (Filter: " .. table.concat(selectedRarities, ", ") .. ")")
-                    or " (All rarities)"
-                SendNotification("Webhook", "Webhook logging aktif!" .. filterInfo, 4)
-                print("✅ Webhook started with filter:", filterInfo)
-            else
-                SendNotification("Error", "Gagal start webhook!", 3)
-            end
+            WebhookModule:SetEnabledRarities(selectedRarities)  -- ✅ Pakai :
+            WebhookModule:Start()  -- ✅ Pakai :
+        end)
+        
+        if success then
+            local filterInfo = #selectedRarities > 0 
+                and (" (Filter: " .. table.concat(selectedRarities, ", ") .. ")")
+                or " (All rarities)"
+            SendNotification("Webhook", "Webhook logging aktif!" .. filterInfo, 4)
+            print("✅ Webhook started" .. filterInfo)
         else
-            WebhookModule.Stop()
-            SendNotification("Webhook", "Webhook logging dinonaktifkan.", 3)
-            print("⏹ Webhook stopped")
+            SendNotification("Error", "Gagal start webhook!", 3)
+            warn("❌ Webhook start failed")
         end
     else
-        SendNotification("Error", "Webhook module tidak tersedia!", 3)
+        pcall(function()
+            WebhookModule:Stop()  -- ✅ Pakai :
+        end)
+        SendNotification("Webhook", "Webhook logging dinonaktifkan.", 3)
+        print("⏹ Webhook stopped")
     end
 end)
 
@@ -2559,15 +2589,11 @@ makeButton(catWebhook, "Test Webhook Connection", function()
                 title = "🎣 Webhook Test Successful!",
                 description = "Your Discord webhook is working correctly!\n\nLynx GUI is ready to send fish notifications." .. filterText,
                 color = 3447003,
-                footer = {
-                    text = "Lynx Webhook Test",
-                    icon_url = "https://i.imgur.com/shnNZuT.png"
-                },
                 timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
             }}
         }
         
-        pcall(function()
+        local success = pcall(function()
             requestFunc({
                 Url = currentWebhookURL,
                 Method = "POST",
@@ -2576,7 +2602,11 @@ makeButton(catWebhook, "Test Webhook Connection", function()
             })
         end)
         
-        SendNotification("Success", "Test message sent! Check Discord.", 4)
+        if success then
+            SendNotification("Success", "Test message sent! Check Discord.", 4)
+        else
+            SendNotification("Error", "Test failed!", 3)
+        end
     else
         SendNotification("Error", "HTTP request tidak didukung!", 3)
     end
@@ -2606,12 +2636,16 @@ local statusText = new("TextLabel", {
     ZIndex = 8
 })
 
--- Real-time status update
 task.spawn(function()
     while true do
         task.wait(1)
         if WebhookModule then
-            if WebhookModule.IsRunning() then
+            local isRunning = false
+            pcall(function()
+                isRunning = WebhookModule:IsRunning()  -- ✅ Pakai :
+            end)
+            
+            if isRunning then
                 statusText.TextColor3 = colors.success
                 local filterInfo = #selectedRarities > 0 
                     and (" | " .. #selectedRarities .. " rarities")
