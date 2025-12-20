@@ -2168,7 +2168,9 @@ end
 -- BAGIAN 6/6: Webhook, Camera, Settings, Info Pages + Controls & Animations
 -- ============================================
 
--- WEBHOOK PAGE - COMPLETE VERSION
+-- ============================================
+-- WEBHOOK PAGE - FIXED VERSION
+-- ============================================
 local WebhookModule = GetModule("Webhook")
 
 local catWebhook = makeCategory(webhookPage, "Discord Webhook Fish Caught", "🔔")
@@ -2253,7 +2255,7 @@ new("UIPadding", {Parent = webhookTextBox, PaddingLeft = UDim.new(0, 8), Padding
 webhookTextBox.FocusLost:Connect(function()
     currentWebhookURL = webhookTextBox.Text
     if WebhookModule and currentWebhookURL ~= "" then
-        WebhookModule:SetWebhookURL(currentWebhookURL)
+        WebhookModule.SetWebhookURL(currentWebhookURL)
         SendNotification("Webhook", "Webhook URL tersimpan!", 2)
     end
 end)
@@ -2310,7 +2312,7 @@ new("UIPadding", {Parent = discordIDTextBox, PaddingLeft = UDim.new(0, 8), Paddi
 discordIDTextBox.FocusLost:Connect(function()
     currentDiscordID = discordIDTextBox.Text
     if WebhookModule then
-        WebhookModule:SetDiscordUserID(currentDiscordID)
+        WebhookModule.SetDiscordUserID(currentDiscordID)
         if currentDiscordID ~= "" then
             SendNotification("Webhook", "Discord ID tersimpan!", 2)
         end
@@ -2450,8 +2452,10 @@ local function createRarityCheckbox(parent, rarityName, yPos)
             }):Play()
         end
         
+        -- CRITICAL FIX: Update module IMMEDIATELY
         if WebhookModule then
-            WebhookModule:SetEnabledRarities(selectedRarities)
+            WebhookModule.SetEnabledRarities(selectedRarities)
+            print("✅ Rarity filter updated:", table.concat(selectedRarities, ", "))
         end
     end)
     
@@ -2499,7 +2503,7 @@ makeButton(catWebhook, "⭐ Select High Rarity Only", function()
     SendNotification("Rarity Filter", "High rarities selected!", 3)
 end)
 
--- Enable Webhook Toggle
+-- Enable Webhook Toggle - FIXED
 makeToggle(catWebhook, "Enable Webhook", function(on)
     if WebhookModule then
         if on then
@@ -2507,14 +2511,31 @@ makeToggle(catWebhook, "Enable Webhook", function(on)
                 SendNotification("Error", "Masukkan Webhook URL dulu!", 3)
                 return
             end
-            local success = WebhookModule:Start()
+            
+            -- Set URL and rarities BEFORE starting
+            WebhookModule.SetWebhookURL(currentWebhookURL)
+            if currentDiscordID ~= "" then
+                WebhookModule.SetDiscordUserID(currentDiscordID)
+            end
+            WebhookModule.SetEnabledRarities(selectedRarities)
+            
+            local success = WebhookModule.Start()
             if success then
-                SendNotification("Webhook", "Webhook logging aktif!", 4)
+                local filterInfo = #selectedRarities > 0 
+                    and (" (Filter: " .. table.concat(selectedRarities, ", ") .. ")")
+                    or " (All rarities)"
+                SendNotification("Webhook", "Webhook logging aktif!" .. filterInfo, 4)
+                print("✅ Webhook started with filter:", filterInfo)
+            else
+                SendNotification("Error", "Gagal start webhook!", 3)
             end
         else
-            WebhookModule:Stop()
+            WebhookModule.Stop()
             SendNotification("Webhook", "Webhook logging dinonaktifkan.", 3)
+            print("⏹ Webhook stopped")
         end
+    else
+        SendNotification("Error", "Webhook module tidak tersedia!", 3)
     end
 end)
 
@@ -2529,11 +2550,19 @@ makeButton(catWebhook, "Test Webhook Connection", function()
     local requestFunc = (syn and syn.request) or (http and http.request) or http_request or request
     
     if requestFunc then
+        local filterText = #selectedRarities > 0 
+            and ("\n**Active Filter:** " .. table.concat(selectedRarities, ", "))
+            or "\n**Filter:** All rarities enabled"
+        
         local testPayload = {
             embeds = {{
                 title = "🎣 Webhook Test Successful!",
-                description = "Your Discord webhook is working correctly!",
+                description = "Your Discord webhook is working correctly!\n\nLynx GUI is ready to send fish notifications." .. filterText,
                 color = 3447003,
+                footer = {
+                    text = "Lynx Webhook Test",
+                    icon_url = "https://i.imgur.com/shnNZuT.png"
+                },
                 timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
             }}
         }
@@ -2576,6 +2605,28 @@ local statusText = new("TextLabel", {
     TextXAlignment = Enum.TextXAlignment.Left,
     ZIndex = 8
 })
+
+-- Real-time status update
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if WebhookModule then
+            if WebhookModule.IsRunning() then
+                statusText.TextColor3 = colors.success
+                local filterInfo = #selectedRarities > 0 
+                    and (" | " .. #selectedRarities .. " rarities")
+                    or " | All rarities"
+                statusText.Text = "Status: 🟢 Active & Monitoring" .. filterInfo
+            else
+                statusText.TextColor3 = colors.warning
+                statusText.Text = "Status: 🟡 Ready (Not Active)"
+            end
+        else
+            statusText.TextColor3 = colors.danger
+            statusText.Text = "Status: 🔴 Module Not Loaded"
+        end
+    end
+end)
 
 -- CAMERA VIEW PAGE
 local FreecamModule = GetModule("FreecamModule")
@@ -2712,9 +2763,14 @@ makeDropdown(catFPS, "Select FPS Limit", "⚙️", {"60 FPS", "90 FPS", "120 FPS
     end
 end, "FPSDropdown")
 
--- Hide Stats Category - COMPLETE VERSION
+-- ============================================
+-- HIDE STATS CATEGORY - FIXED VERSION
+-- ============================================
+local HideStats = GetModule("HideStats")
+
 local catHideStats = makeCategory(settingsPage, "Hide Stats Identifier", "👤")
 
+-- Info Container
 local hideStatsInfoContainer = new("Frame", {
     Parent = catHideStats,
     Size = UDim2.new(1, 0, 0, 85),
@@ -2741,18 +2797,6 @@ local hideStatsInfoText = new("TextLabel", {
     TextYAlignment = Enum.TextYAlignment.Top,
     ZIndex = 8
 })
-
-makeToggle(catHideStats, "⚡ Enable Hide Stats", function(on)
-    if HideStats then
-        if on then
-            HideStats.Enable()
-            SendNotification("Hide Stats", "Hide Stats aktif!", 3)
-        else
-            HideStats.Disable()
-            SendNotification("Hide Stats", "Hide Stats dimatikan.", 3)
-        end
-    end
-end)
 
 -- Fake Name Input Container
 local currentFakeName = "Guest"
@@ -2809,7 +2853,8 @@ fakeNameTextBox.FocusLost:Connect(function()
         currentFakeName = value
         if HideStats then
             HideStats.SetFakeName(value)
-            SendNotification("Hide Stats", "Fake name diubah: " .. value, 2)
+            SendNotification("Hide Stats", "Fake name set: " .. value, 2)
+            print("✅ Fake name set:", value)
         end
     end
 end)
@@ -2869,8 +2914,42 @@ fakeLevelTextBox.FocusLost:Connect(function()
         currentFakeLevel = value
         if HideStats then
             HideStats.SetFakeLevel(value)
-            SendNotification("Hide Stats", "Fake level diubah: " .. value, 2)
+            SendNotification("Hide Stats", "Fake level set: " .. value, 2)
+            print("✅ Fake level set:", value)
         end
+    end
+end)
+
+-- Toggle Enable Hide Stats - FIXED
+makeToggle(catHideStats, "⚡ Enable Hide Stats", function(on)
+    if HideStats then
+        if on then
+            -- Set values BEFORE enabling
+            if currentFakeName ~= "" then
+                HideStats.SetFakeName(currentFakeName)
+            end
+            if currentFakeLevel ~= "" then
+                HideStats.SetFakeLevel(currentFakeLevel)
+            end
+            
+            local success = HideStats.Enable()
+            if success then
+                SendNotification("Hide Stats", "✓ Hide Stats aktif! Name: " .. currentFakeName .. " | Level: " .. currentFakeLevel, 4)
+                print("✅ Hide Stats enabled:", currentFakeName, currentFakeLevel)
+            else
+                SendNotification("Hide Stats", "⚠ Already active!", 3)
+            end
+        else
+            local success = HideStats.Disable()
+            if success then
+                SendNotification("Hide Stats", "✓ Hide Stats dimatikan!", 4)
+                print("⏹ Hide Stats disabled")
+            else
+                SendNotification("Hide Stats", "⚠ Already disabled!", 3)
+            end
+        end
+    else
+        SendNotification("Error", "Hide Stats module tidak tersedia!", 3)
     end
 end)
 
