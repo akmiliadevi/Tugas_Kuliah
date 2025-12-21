@@ -2798,29 +2798,39 @@ makeDropdown(catFPS, "Select FPS Limit", "⚙️", {"60 FPS", "90 FPS", "120 FPS
 end, "FPSDropdown")
 
 -- ============================================
--- HIDE STATS CATEGORY - COMPLETE FIXED VERSION (NO STATUS INDICATOR)
+-- HIDE STATS CATEGORY - FIXED (NO DUPLICATION)
 -- ============================================
-local HideStats = GetModule("HideStats")
+
+-- ⚠️ PENTING: Jangan deklarasi ulang HideStats di sini!
+-- HideStats sudah di-load di baris atas bersama module lainnya
 
 -- Debug check module loading
 task.spawn(function()
-    task.wait(3)
+    task.wait(5) -- Tunggu lebih lama untuk memastikan module loaded
+    
+    local HideStats = GetModule("HideStats")
+    
     if HideStats then
         print("✅ HideStats module loaded successfully")
         print("   Type:", type(HideStats))
+        print("   Available methods:")
         for k, v in pairs(HideStats) do
-            print("   - Method:", k, "| Type:", type(v))
+            print("      -", k, ":", type(v))
         end
     else
         warn("❌ HideStats module is nil!")
+        warn("   Checking Modules table directly...")
+        if Modules["HideStats"] then
+            print("   Found in Modules table:", type(Modules["HideStats"]))
+        else
+            warn("   NOT in Modules table!")
+        end
     end
 end)
 
 local catHideStats = makeCategory(settingsPage, "Hide Stats Identifier", "👤")
 
--- ============================
 -- INFO CONTAINER
--- ============================
 local hideStatsInfoContainer = new("Frame", {
     Parent = catHideStats,
     Size = UDim2.new(1, 0, 0, 85),
@@ -2853,9 +2863,7 @@ local hideStatsInfoText = new("TextLabel", {
     ZIndex = 8
 })
 
--- ============================
--- FAKE NAME INPUT CONTAINER
--- ============================
+-- FAKE NAME INPUT
 local currentFakeName = "Guest"
 
 local fakeNameContainer = new("Frame", {
@@ -2867,12 +2875,7 @@ local fakeNameContainer = new("Frame", {
     ZIndex = 7
 })
 new("UICorner", {Parent = fakeNameContainer, CornerRadius = UDim.new(0, 8)})
-new("UIStroke", {
-    Parent = fakeNameContainer,
-    Color = colors.border,
-    Thickness = 1,
-    Transparency = 0.95
-})
+new("UIStroke", {Parent = fakeNameContainer, Color = colors.border, Thickness = 1, Transparency = 0.95})
 
 local fakeNameLabel = new("TextLabel", {
     Parent = fakeNameContainer,
@@ -2907,27 +2910,20 @@ local fakeNameTextBox = new("TextBox", {
     ZIndex = 8
 })
 new("UICorner", {Parent = fakeNameTextBox, CornerRadius = UDim.new(0, 6)})
-new("UIStroke", {
-    Parent = fakeNameTextBox,
-    Color = colors.border,
-    Thickness = 1,
-    Transparency = 0.9
-})
-new("UIPadding", {
-    Parent = fakeNameTextBox,
-    PaddingLeft = UDim.new(0, 8),
-    PaddingRight = UDim.new(0, 8)
-})
+new("UIStroke", {Parent = fakeNameTextBox, Color = colors.border, Thickness = 1, Transparency = 0.9})
+new("UIPadding", {Parent = fakeNameTextBox, PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8)})
 
--- ✅ CRITICAL FIX: FocusLost event dengan error handling
 fakeNameTextBox.FocusLost:Connect(function()
     local value = fakeNameTextBox.Text
     if value and value ~= "" then
         currentFakeName = value
         
+        -- ✅ Get module fresh setiap kali digunakan
+        local HideStats = GetModule("HideStats")
+        
         if HideStats then
             local success, err = pcall(function()
-                HideStats:SetFakeName(value)  -- ✅ Menggunakan : (colon)
+                HideStats:SetFakeName(value)
             end)
             
             if success then
@@ -2944,9 +2940,7 @@ fakeNameTextBox.FocusLost:Connect(function()
     end
 end)
 
--- ============================
--- FAKE LEVEL INPUT CONTAINER
--- ============================
+-- FAKE LEVEL INPUT
 local currentFakeLevel = "1"
 
 local fakeLevelContainer = new("Frame", {
@@ -2958,12 +2952,7 @@ local fakeLevelContainer = new("Frame", {
     ZIndex = 7
 })
 new("UICorner", {Parent = fakeLevelContainer, CornerRadius = UDim.new(0, 8)})
-new("UIStroke", {
-    Parent = fakeLevelContainer,
-    Color = colors.border,
-    Thickness = 1,
-    Transparency = 0.95
-})
+new("UIStroke", {Parent = fakeLevelContainer, Color = colors.border, Thickness = 1, Transparency = 0.95})
 
 local fakeLevelLabel = new("TextLabel", {
     Parent = fakeLevelContainer,
@@ -2998,27 +2987,20 @@ local fakeLevelTextBox = new("TextBox", {
     ZIndex = 8
 })
 new("UICorner", {Parent = fakeLevelTextBox, CornerRadius = UDim.new(0, 6)})
-new("UIStroke", {
-    Parent = fakeLevelTextBox,
-    Color = colors.border,
-    Thickness = 1,
-    Transparency = 0.9
-})
-new("UIPadding", {
-    Parent = fakeLevelTextBox,
-    PaddingLeft = UDim.new(0, 8),
-    PaddingRight = UDim.new(0, 8)
-})
+new("UIStroke", {Parent = fakeLevelTextBox, Color = colors.border, Thickness = 1, Transparency = 0.9})
+new("UIPadding", {Parent = fakeLevelTextBox, PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8)})
 
--- ✅ CRITICAL FIX: FocusLost event dengan error handling
 fakeLevelTextBox.FocusLost:Connect(function()
     local value = fakeLevelTextBox.Text
     if value and value ~= "" then
         currentFakeLevel = value
         
+        -- ✅ Get module fresh setiap kali digunakan
+        local HideStats = GetModule("HideStats")
+        
         if HideStats then
             local success, err = pcall(function()
-                HideStats:SetFakeLevel(value)  -- ✅ Menggunakan : (colon)
+                HideStats:SetFakeLevel(value)
             end)
             
             if success then
@@ -3035,10 +3017,11 @@ fakeLevelTextBox.FocusLost:Connect(function()
     end
 end)
 
--- ============================
 -- TOGGLE ENABLE HIDE STATS
--- ============================
 makeToggle(catHideStats, "⚡ Enable Hide Stats", function(on)
+    -- ✅ Get module fresh setiap kali toggle
+    local HideStats = GetModule("HideStats")
+    
     if not HideStats then
         SendNotification("Error", "Hide Stats module tidak tersedia!", 3)
         warn("❌ HideStats module is nil")
@@ -3046,22 +3029,21 @@ makeToggle(catHideStats, "⚡ Enable Hide Stats", function(on)
     end
     
     if on then
-        -- Set fake values BEFORE enabling
         local success, err = pcall(function()
             -- Set fake name
             if currentFakeName ~= "" and currentFakeName ~= "Guest" then
-                HideStats:SetFakeName(currentFakeName)  -- ✅ Menggunakan :
+                HideStats:SetFakeName(currentFakeName)
                 print("🔧 Setting fake name:", currentFakeName)
             end
             
             -- Set fake level
             if currentFakeLevel ~= "" and currentFakeLevel ~= "1" then
-                HideStats:SetFakeLevel(currentFakeLevel)  -- ✅ Menggunakan :
+                HideStats:SetFakeLevel(currentFakeLevel)
                 print("🔧 Setting fake level:", currentFakeLevel)
             end
             
             -- Enable Hide Stats
-            HideStats:Enable()  -- ✅ Menggunakan :
+            HideStats:Enable()
             print("🔧 Enabling Hide Stats...")
         end)
         
@@ -3075,9 +3057,8 @@ makeToggle(catHideStats, "⚡ Enable Hide Stats", function(on)
             warn("❌ Hide Stats enable failed:", err)
         end
     else
-        -- Disable Hide Stats
         local success, err = pcall(function()
-            HideStats:Disable()  -- ✅ Menggunakan :
+            HideStats:Disable()
         end)
         
         if success then
