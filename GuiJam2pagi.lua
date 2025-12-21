@@ -308,7 +308,7 @@ local ModuleList = {
     -- Shop
     "AutoSell", "AutoSellTimer", "MerchantSystem", "RemoteBuyer", "AutoBuyWeather",
     -- Camera & Settings
-    "FreecamModule", "UnlimitedZoomModule", "AntiAFK", "UnlockFPS", "FPSBooster"
+    "FreecamModule", "UnlimitedZoomModule", "AntiAFK", "UnlockFPS", "FPSBooster", "DisableRendering"
 }
 
 totalModules = #ModuleList
@@ -2693,6 +2693,7 @@ local AntiAFK = GetModule("AntiAFK")
 local UnlockFPS = GetModule("UnlockFPS")
 local FPSBooster = GetModule("FPSBooster")
 local HideStats = GetModule("HideStats")
+local DisableRenderingModule = GetModule("DisableRendering")
 
 -- Anti-AFK Category
 local catAFK = makeCategory(settingsPage, "Anti-AFK Protection", "🧍‍♂️")
@@ -2726,6 +2727,32 @@ makeToggle(catBoost, "Enable FPS Booster", function(on)
             FPSBooster.Disable()
             SendNotification("FPS Booster", "FPS Booster dimatikan.", 3)
         end
+    end
+end)
+
+-- Screen Mode Selection (Default: White Screen)
+makeDropdown(catBoost, "Screen Mode", "🎨", {"White Screen", "Black Screen"}, function(selected)
+    if DisableRenderingModule then
+        local mode = selected == "White Screen" and "white" or "black"
+        DisableRenderingModule.SetScreenMode(mode)
+    end
+end, "ScreenModeDropdown")
+
+-- Toggle Disable Rendering
+makeToggle(catBoost, "Disable 3D Rendering", function(on)
+    if not DisableRenderingModule then return end
+    
+    if on then
+        DisableRenderingModule.Start()
+    else
+        DisableRenderingModule.Stop()
+    end
+end)
+
+-- Toggle FPS Counter
+makeToggle(catBoost, "Show FPS Counter", function(on)
+    if DisableRenderingModule then
+        DisableRenderingModule.ToggleFPS(on)
     end
 end)
 
