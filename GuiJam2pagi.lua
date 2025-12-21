@@ -90,7 +90,7 @@ function LoadingNotification.Create()
         local notifFrame = new("Frame", {
             Parent = notifGui,
             Size = UDim2.new(0, 340, 0, 100),
-            Position = UDim2.new(1, -360, 0, 80), -- Right side, slightly down
+            Position = UDim2.new(1, -360, 1, -120), -- Bottom right corner, slightly up
             BackgroundColor3 = Color3.fromRGB(0, 0, 0),
             BackgroundTransparency = 0.15, -- Slightly transparent black
             BorderSizePixel = 0
@@ -175,9 +175,9 @@ function LoadingNotification.Create()
         LoadingNotification.TitleLabel = titleLabel
         
         -- iOS-style slide in animation (from right)
-        notifFrame.Position = UDim2.new(1, 20, 0, 80)
+        notifFrame.Position = UDim2.new(1, 20, 1, -120)
         TweenService:Create(notifFrame, TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
-            Position = UDim2.new(1, -360, 0, 80)
+            Position = UDim2.new(1, -360, 1, -120)
         }):Play()
     end)
 end
@@ -227,7 +227,7 @@ function LoadingNotification.Complete(success, loadedCount, totalCount)
             local frame = LoadingNotification.NotificationId:FindFirstChildOfClass("Frame")
             if frame then
                 TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Cubic, Enum.EasingDirection.In), {
-                    Position = UDim2.new(1, 20, 0, 80)
+                    Position = UDim2.new(1, 20, 1, -120)
                 }):Play()
             end
             task.wait(0.5)
