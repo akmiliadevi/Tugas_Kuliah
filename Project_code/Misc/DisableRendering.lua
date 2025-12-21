@@ -78,27 +78,6 @@ local function createScreenOverlay(mode)
         
         Overlay.Parent = ScreenGui
         
-        -- Add info label
-        local InfoLabel = Instance.new("TextLabel")
-        InfoLabel.Name = "InfoLabel"
-        InfoLabel.Size = UDim2.new(0, 400, 0, 100)
-        InfoLabel.Position = UDim2.new(0.5, -200, 0.5, -50)
-        InfoLabel.BackgroundTransparency = 1
-        InfoLabel.Font = Enum.Font.GothamBold
-        InfoLabel.TextSize = 24
-        InfoLabel.TextStrokeTransparency = 0.5
-        
-        -- Set text color opposite to background
-        if mode == "black" then
-            InfoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            InfoLabel.Text = "⚡ Performance Mode: BLACK SCREEN"
-        else
-            InfoLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
-            InfoLabel.Text = "⚡ Performance Mode: WHITE SCREEN"
-        end
-        
-        InfoLabel.Parent = ScreenGui
-        
         ScreenGui.Parent = PlayerGui
         
         State.ScreenOverlay = ScreenGui
