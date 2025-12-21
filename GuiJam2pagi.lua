@@ -2730,14 +2730,6 @@ makeToggle(catBoost, "Enable FPS Booster", function(on)
     end
 end)
 
--- Screen Mode Selection (Default: White Screen)
-makeDropdown(catBoost, "Screen Mode", "🎨", {"White Screen", "Black Screen"}, function(selected)
-    if DisableRenderingModule then
-        local mode = selected == "White Screen" and "white" or "black"
-        DisableRenderingModule.SetScreenMode(mode)
-    end
-end, "ScreenModeDropdown")
-
 -- Toggle Disable Rendering
 makeToggle(catBoost, "Disable 3D Rendering", function(on)
     if not DisableRenderingModule then return end
@@ -2746,13 +2738,6 @@ makeToggle(catBoost, "Disable 3D Rendering", function(on)
         DisableRenderingModule.Start()
     else
         DisableRenderingModule.Stop()
-    end
-end)
-
--- Toggle FPS Counter
-makeToggle(catBoost, "Show FPS Counter", function(on)
-    if DisableRenderingModule then
-        DisableRenderingModule.ToggleFPS(on)
     end
 end)
 
