@@ -2729,28 +2729,6 @@ makeToggle(catBoost, "Enable FPS Booster", function(on)
     end
 end)
 
--- White Screen toggle
-makeToggle(catBoost, "Disable 3D Rendering (White)", function(on)
-    if on then
-        PerformanceModule.Render3D.EnableWhite()
-        SendNotification("3D", "White screen aktif!", 3)
-    else
-        PerformanceModule.Render3D.Disable()
-        SendNotification("3D", "Normal!", 3)
-    end
-end)
-
--- Black Screen toggle
-makeToggle(catBoost, "Disable 3D Rendering (Black)", function(on)
-    if on then
-        PerformanceModule.Render3D.EnableBlack()
-        SendNotification("3D", "Black screen aktif!", 3)
-    else
-        PerformanceModule.Render3D.Disable()
-        SendNotification("3D", "Normal!", 3)
-    end
-end)
-
 -- FPS Unlocker Category
 local catFPS = makeCategory(settingsPage, "FPS Unlocker", "🎞️")
 
