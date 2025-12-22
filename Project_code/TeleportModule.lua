@@ -10,6 +10,7 @@ TeleportModule.Locations = {
     ["Crater Island"] = Vector3.new(1078.454345703125, 5.0720038414001465, 5099.396484375),
     ["Classic Island"] = Vector3.new(1253.974853515625, 9.999999046325684, 2816.7646484375),
     ["Christmas Island"] = Vector3.new(1130.576904, 23.854950, 1554.231567),
+    ["Christmas Cave"] = Vector3.new(535.279724121093750, -580.581359863281250, 8900.060546875000000),
     ["Iron Cavern"] = Vector3.new(-8881.52734375, -581.7500610351562, 156.1653289794922),
     ["The Iron Cafe"] = Vector3.new(-8642.7265625, -547.5001831054688, 159.8160400390625),
     ["Esoteric Depths"] = Vector3.new(3224.075927734375, -1302.85498046875, 1404.9346923828125),
@@ -41,4 +42,5 @@ function TeleportModule.TeleportTo(name)
 end
 
 return TeleportModule
+
 
