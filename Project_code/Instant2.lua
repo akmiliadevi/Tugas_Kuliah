@@ -1,4 +1,4 @@
--- ⚡ ULTRA PERFECT CAST AUTO FISHING v35.1 (Auto Sync GUI Settings)
+-- ⚡ ULTRA PERFECT CAST AUTO FISHING v35.2 (Safe Config Loading)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -26,21 +26,37 @@ local RE_MinigameChanged = netFolder:WaitForChild("RE/FishingMinigameChanged")
 local RE_FishCaught = netFolder:WaitForChild("RE/FishCaught")
 local RE_FishingStopped = netFolder:WaitForChild("RE/FishingStopped")
 
--- ⭐ NEW: Load saved settings dari GUI config
-local function loadSavedSettings()
-    local saved = {
-        MaxWaitTime = 1.5,  -- Default values
-        CancelDelay = 0.19
-    }
-    
-    -- Try to get saved values from config
-    if GetConfigValue then
-        saved.MaxWaitTime = GetConfigValue("InstantFishing.FishingDelay", 1.5)
-        saved.CancelDelay = GetConfigValue("InstantFishing.CancelDelay", 0.19)
-        print("🎣 [Perfect Mode] Loaded settings - Fishing Delay:", saved.MaxWaitTime, "Cancel Delay:", saved.CancelDelay)
+-- ⭐ SAFE CONFIG LOADING - Check if function exists
+local function safeGetConfig(key, default)
+    -- Check if GetConfigValue exists in _G
+    if _G.GetConfigValue and type(_G.GetConfigValue) == "function" then
+        local success, value = pcall(function()
+            return _G.GetConfigValue(key, default)
+        end)
+        if success and value ~= nil then
+            return value
+        end
     end
+    -- Return default if function doesn't exist or fails
+    return default
+end
+
+-- ⭐ SAFE: Load saved settings dari GUI config
+local function loadSavedSettings()
+    local maxWait = safeGetConfig("InstantFishing.FishingDelay", 1.5)
+    local cancelDelay = safeGetConfig("InstantFishing.CancelDelay", 0.19)
     
-    return saved
+    if _G.GetConfigValue then
+        print("🎣 [Perfect Mode] Loaded settings from config")
+    else
+        print("⚠️ [Perfect Mode] Config system not ready yet, using defaults")
+    end
+    print("   Fishing Delay:", maxWait, "| Cancel Delay:", cancelDelay)
+    
+    return {
+        MaxWaitTime = maxWait,
+        CancelDelay = cancelDelay
+    }
 end
 
 local savedSettings = loadSavedSettings()
@@ -72,10 +88,19 @@ local fishing = {
 
 _G.FishingScript = fishing
 
--- ⭐ Log initial settings
-print("✅ [Perfect Mode] Initial Settings:")
-print("   - MaxWaitTime (Fishing Delay):", fishing.Settings.MaxWaitTime)
-print("   - CancelDelay:", fishing.Settings.CancelDelay)
+-- ⭐ Auto-refresh settings setiap kali akan Start (dengan safety check)
+local function refreshSettings()
+    local maxWait = safeGetConfig("InstantFishing.FishingDelay", fishing.Settings.MaxWaitTime)
+    local cancelDelay = safeGetConfig("InstantFishing.CancelDelay", fishing.Settings.CancelDelay)
+    
+    fishing.Settings.MaxWaitTime = maxWait
+    fishing.Settings.CancelDelay = cancelDelay
+    
+    if _G.GetConfigValue then
+        print("🔄 [Perfect Mode] Settings refreshed from config")
+        print("   MaxWaitTime:", fishing.Settings.MaxWaitTime, "| CancelDelay:", fishing.Settings.CancelDelay)
+    end
+end
 
 local function disableFishingAnim()
     pcall(function()
@@ -234,6 +259,10 @@ end
 
 function fishing.Start()
     if fishing.Running then return end
+    
+    -- ⭐ Refresh settings dari config sebelum start
+    refreshSettings()
+    
     fishing.Running = true
     fishing.CurrentCycle = 0
     fishing.TotalFish = 0
@@ -323,6 +352,18 @@ function fishing.Stop()
     pcall(function()
         RF_CancelFishingInputs:InvokeServer()
     end)
+end
+
+-- ⭐ Function untuk update settings dari GUI (tetap ada untuk backward compatibility)
+function fishing.UpdateSettings(maxWaitTime, cancelDelay)
+    if maxWaitTime then
+        fishing.Settings.MaxWaitTime = maxWaitTime
+        print("✅ [Perfect Mode] MaxWaitTime updated to:", maxWaitTime)
+    end
+    if cancelDelay then
+        fishing.Settings.CancelDelay = cancelDelay
+        print("✅ [Perfect Mode] CancelDelay updated to:", cancelDelay)
+    end
 end
 
 return fishing
