@@ -1700,6 +1700,14 @@ local function SaveCurrentConfig()
     end
 end
 
+-- ============================================
+-- TAMBAHKAN INI SEBELUM "AUTO FISHING SECTION"
+-- (Letakkan setelah function makeButton dan sebelum catAutoFishing)
+-- ============================================
+
+-- ⭐ PENTING: Toggle References untuk menyimpan semua toggle states
+local ToggleReferences = {}
+
 -- ==========================================
 -- AUTO FISHING SECTION (FIXED)
 -- ==========================================
@@ -1799,15 +1807,15 @@ ToggleReferences.InstantFishing = makeToggle(catAutoFishing, "Enable Instant Fis
     end
 end)
 
--- ⭐ Restore toggle state after creation (SAMA SEPERTI BLATANT)
+-- ⭐ Restore toggle state after creation
 task.spawn(function()
-    task.wait(0.5)  -- ⭐ PENTING: Ubah dari 0.3 ke 0.5
+    task.wait(0.5)
     if savedInstantEnabled and ToggleReferences.InstantFishing then
-        ToggleReferences.InstantFishing.SetState(true)
+        ToggleReferences.InstantFishing.setOn(savedInstantEnabled, true)
         isInstantFishingEnabled = true
         print("✅ Instant Fishing toggle restored to ON")
         
-        -- ⭐ PENTING: Pastikan module yang benar di-start
+        -- ⭐ PENTING: Auto-start module yang benar
         local instant = GetModule("instant")
         local instant2 = GetModule("instant2")
         
@@ -1821,7 +1829,7 @@ task.spawn(function()
     end
 end)
 
--- Fishing Delay Input (⭐ Gunakan savedFishingDelay sebagai default)
+-- Fishing Delay Input
 makeInput(catAutoFishing, "Fishing Delay", savedFishingDelay, function(v)
     fishingDelayValue = v
     SetConfigValue("InstantFishing.FishingDelay", v)
@@ -1840,7 +1848,7 @@ makeInput(catAutoFishing, "Fishing Delay", savedFishingDelay, function(v)
     end
 end)
 
--- Cancel Delay Input (⭐ Gunakan savedCancelDelay sebagai default)
+-- Cancel Delay Input
 makeInput(catAutoFishing, "Cancel Delay", savedCancelDelay, function(v)
     cancelDelayValue = v
     SetConfigValue("InstantFishing.CancelDelay", v)
@@ -1858,6 +1866,7 @@ makeInput(catAutoFishing, "Cancel Delay", savedCancelDelay, function(v)
         print("✅ Perfect mode Cancel Delay updated to:", v)
     end
 end)
+
 -- ============================================
 -- MAIN PAGE - BLATANT MODES
 -- ============================================
