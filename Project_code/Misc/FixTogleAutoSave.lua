@@ -1294,8 +1294,10 @@ end
 -- PART 4/8: DROPDOWN & CHECKBOX COMPONENTS
 -- ============================================
 
--- Dropdown Component
-local function makeDropdown(parent, title, icon, items, onSelect, uniqueId)
+-- ==========================================
+-- UPDATED DROPDOWN FUNCTION (Replace your existing makeDropdown)
+-- ==========================================
+local function makeDropdown(parent, title, icon, items, onSelect, uniqueId, defaultValue)
     local dropdownFrame = new("Frame", {
         Parent = parent,
         Size = UDim2.new(1, 0, 0, 40),
@@ -1395,6 +1397,16 @@ local function makeDropdown(parent, title, icon, items, onSelect, uniqueId)
     local isOpen = false
     local selectedItem = nil
     
+    -- ⭐ Function to set selected item
+    local function setSelectedItem(itemName, triggerCallback)
+        selectedItem = itemName
+        statusLabel.Text = "✓ " .. itemName
+        statusLabel.TextColor3 = colors.success
+        if triggerCallback then
+            pcall(onSelect, itemName)
+        end
+    end
+    
     header.MouseButton1Click:Connect(function()
         isOpen = not isOpen
         listContainer.Visible = isOpen
@@ -1467,10 +1479,7 @@ local function makeDropdown(parent, title, icon, items, onSelect, uniqueId)
         end)
         
         itemBtn.MouseButton1Click:Connect(function()
-            selectedItem = itemName
-            statusLabel.Text = "✓ " .. itemName
-            statusLabel.TextColor3 = colors.success
-            pcall(onSelect, itemName)
+            setSelectedItem(itemName, true)
             
             task.wait(0.1)
             isOpen = false
@@ -1480,6 +1489,15 @@ local function makeDropdown(parent, title, icon, items, onSelect, uniqueId)
                 BackgroundTransparency = 0.5
             }):Play()
             TweenService:Create(dropStroke, TweenInfo.new(0.25), {Thickness = 0}):Play()
+        end)
+    end
+    
+    -- ⭐ Set default value if provided
+    if defaultValue and table.find(items, defaultValue) then
+        task.spawn(function()
+            task.wait(0.1)
+            setSelectedItem(defaultValue, false) -- false = don't trigger callback yet
+            print("✅ Dropdown '" .. title .. "' default set to:", defaultValue)
         end)
     end
     
@@ -1682,58 +1700,86 @@ local function SaveCurrentConfig()
     end
 end
 
--- ============================================
--- MAIN PAGE - AUTO FISHING FEATURES
--- ============================================
-
+-- ==========================================
+-- AUTO FISHING SECTION
+-- ==========================================
 local catAutoFishing = makeCategory(mainPage, "Auto Fishing", "🎣")
-local currentInstantMode = GetConfigValue("InstantFishing.Mode", "None")
-local fishingDelayValue = GetConfigValue("InstantFishing.FishingDelay", 1.30)
-local cancelDelayValue = GetConfigValue("InstantFishing.CancelDelay", 0.19)
+
+-- ⭐ Load saved settings first
+local savedInstantMode = GetConfigValue("InstantFishing.Mode", "Fast")
+local savedFishingDelay = GetConfigValue("InstantFishing.FishingDelay", 1.30)
+local savedCancelDelay = GetConfigValue("InstantFishing.CancelDelay", 0.19)
+local savedInstantEnabled = GetConfigValue("InstantFishing.Enabled", false)
+
+-- Variables to track current state
+local currentInstantMode = savedInstantMode
+local fishingDelayValue = savedFishingDelay
+local cancelDelayValue = savedCancelDelay
 local isInstantFishingEnabled = false
 
--- Store toggle references for restoration
-local ToggleReferences = {}
+-- ⭐ Apply settings to modules immediately on load
+task.spawn(function()
+    task.wait(0.5)
+    local instant = GetModule("instant")
+    local instant2 = GetModule("instant2")
+    
+    if instant then
+        instant.Settings.MaxWaitTime = savedFishingDelay
+        instant.Settings.CancelDelay = savedCancelDelay
+        print("✅ Instant (Fast) settings loaded from config")
+    end
+    
+    if instant2 then
+        instant2.Settings.MaxWaitTime = savedFishingDelay
+        instant2.Settings.CancelDelay = savedCancelDelay
+        print("✅ Instant2 (Perfect) settings loaded from config")
+    end
+    
+    print("✅ Auto Fishing Mode loaded:", savedInstantMode)
+end)
 
--- Instant Fishing Mode Dropdown
+-- Instant Fishing Mode Dropdown (⭐ with default value)
 makeDropdown(catAutoFishing, "Instant Fishing Mode", "⚡", {"Fast", "Perfect"}, function(mode)
     currentInstantMode = mode
     SetConfigValue("InstantFishing.Mode", mode)
     SaveCurrentConfig()
+    print("✅ Instant Fishing Mode changed to:", mode)
     
     local instant = GetModule("instant")
     local instant2 = GetModule("instant2")
     
+    -- Stop both modules first
     if instant then instant.Stop() end
     if instant2 then instant2.Stop() end
     
+    -- Update settings for both modules
+    if instant then
+        instant.Settings.MaxWaitTime = fishingDelayValue
+        instant.Settings.CancelDelay = cancelDelayValue
+    end
+    if instant2 then
+        instant2.Settings.MaxWaitTime = fishingDelayValue
+        instant2.Settings.CancelDelay = cancelDelayValue
+    end
+    
+    -- Start the selected mode if enabled
     if isInstantFishingEnabled then
         if mode == "Fast" and instant then
-            instant.Settings.MaxWaitTime = fishingDelayValue
-            instant.Settings.CancelDelay = cancelDelayValue
             instant.Start()
+            print("✅ Fast mode started")
         elseif mode == "Perfect" and instant2 then
-            instant2.Settings.MaxWaitTime = fishingDelayValue
-            instant2.Settings.CancelDelay = cancelDelayValue
             instant2.Start()
-        end
-    else
-        if instant then
-            instant.Settings.MaxWaitTime = fishingDelayValue
-            instant.Settings.CancelDelay = cancelDelayValue
-        end
-        if instant2 then
-            instant2.Settings.MaxWaitTime = fishingDelayValue
-            instant2.Settings.CancelDelay = cancelDelayValue
+            print("✅ Perfect mode started")
         end
     end
-end, "InstantFishingMode")
+end, "InstantFishingMode", savedInstantMode) -- ⭐ Pass default value here
 
 -- Enable Instant Fishing Toggle
 ToggleReferences.InstantFishing = makeToggle(catAutoFishing, "Enable Instant Fishing", function(on)
     isInstantFishingEnabled = on
     SetConfigValue("InstantFishing.Enabled", on)
     SaveCurrentConfig()
+    print("✅ Instant Fishing enabled:", on)
     
     local instant = GetModule("instant")
     local instant2 = GetModule("instant2")
@@ -1741,37 +1787,64 @@ ToggleReferences.InstantFishing = makeToggle(catAutoFishing, "Enable Instant Fis
     if on then
         if currentInstantMode == "Fast" and instant then
             instant.Start()
+            print("✅ Fast mode activated")
         elseif currentInstantMode == "Perfect" and instant2 then
             instant2.Start()
+            print("✅ Perfect mode activated")
         end
     else
         if instant then instant.Stop() end
         if instant2 then instant2.Stop() end
+        print("✅ All fishing modes stopped")
+    end
+end)
+
+-- ⭐ Restore toggle state after creation
+task.spawn(function()
+    task.wait(0.3)
+    if savedInstantEnabled and ToggleReferences.InstantFishing then
+        ToggleReferences.InstantFishing.SetState(true)
+        isInstantFishingEnabled = true
+        print("✅ Instant Fishing toggle restored to ON")
     end
 end)
 
 -- Fishing Delay Input
-makeInput(catAutoFishing, "Fishing Delay", fishingDelayValue, function(v)
+makeInput(catAutoFishing, "Fishing Delay", savedFishingDelay, function(v)
     fishingDelayValue = v
     SetConfigValue("InstantFishing.FishingDelay", v)
     SaveCurrentConfig()
     
     local instant = GetModule("instant")
     local instant2 = GetModule("instant2")
-    if instant then instant.Settings.MaxWaitTime = v end
-    if instant2 then instant2.Settings.MaxWaitTime = v end
+    
+    if instant then 
+        instant.Settings.MaxWaitTime = v
+        print("✅ Fast mode Fishing Delay updated to:", v)
+    end
+    if instant2 then 
+        instant2.Settings.MaxWaitTime = v
+        print("✅ Perfect mode Fishing Delay updated to:", v)
+    end
 end)
 
 -- Cancel Delay Input
-makeInput(catAutoFishing, "Cancel Delay", cancelDelayValue, function(v)
+makeInput(catAutoFishing, "Cancel Delay", savedCancelDelay, function(v)
     cancelDelayValue = v
     SetConfigValue("InstantFishing.CancelDelay", v)
     SaveCurrentConfig()
     
     local instant = GetModule("instant")
     local instant2 = GetModule("instant2")
-    if instant then instant.Settings.CancelDelay = v end
-    if instant2 then instant2.Settings.CancelDelay = v end
+    
+    if instant then 
+        instant.Settings.CancelDelay = v
+        print("✅ Fast mode Cancel Delay updated to:", v)
+    end
+    if instant2 then 
+        instant2.Settings.CancelDelay = v
+        print("✅ Perfect mode Cancel Delay updated to:", v)
+    end
 end)
 
 -- ============================================
