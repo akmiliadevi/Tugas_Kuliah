@@ -1,17 +1,8 @@
--- ⚡ ULTRA SPEED AUTO FISHING v29.4 (Fast Mode - Safe Config Loading)
+-- ⚡ ULTRA BLATANT AUTO FISHING v2.0 - AUTO SYNC WITH GUI CONFIG
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local localPlayer = Players.LocalPlayer
-local Character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
 
--- Hentikan script lama jika masih aktif
-if _G.FishingScriptFast then
-    _G.FishingScriptFast.Stop()
-    task.wait(0.1)
-end
-
--- Inisialisasi koneksi network
+-- Network initialization
 local netFolder = ReplicatedStorage
     :WaitForChild("Packages")
     :WaitForChild("_Index")
@@ -24,11 +15,9 @@ local RF_CancelFishingInputs = netFolder:WaitForChild("RF/CancelFishingInputs")
 local RF_UpdateAutoFishingState = netFolder:WaitForChild("RF/UpdateAutoFishingState")
 local RE_FishingCompleted = netFolder:WaitForChild("RE/FishingCompleted")
 local RE_MinigameChanged = netFolder:WaitForChild("RE/FishingMinigameChanged")
-local RE_FishCaught = netFolder:WaitForChild("RE/FishCaught")
 
 -- ⭐ SAFE CONFIG LOADING - Check if function exists
 local function safeGetConfig(key, default)
-    -- Check if GetConfigValue exists in _G
     if _G.GetConfigValue and type(_G.GetConfigValue) == "function" then
         local success, value = pcall(function()
             return _G.GetConfigValue(key, default)
@@ -37,240 +26,180 @@ local function safeGetConfig(key, default)
             return value
         end
     end
-    -- Return default if function doesn't exist or fails
     return default
 end
 
--- ⭐ AUTO-LOAD SETTINGS FROM CONFIG (with safety check)
-local function loadConfigSettings()
-    local maxWait = safeGetConfig("InstantFishing.FishingDelay", 1.30)
-    local cancelDelay = safeGetConfig("InstantFishing.CancelDelay", 0.19)
+-- ⭐ Load saved settings dari GUI config
+local function loadSavedSettings()
+    local completeDelay = safeGetConfig("UltraBlatant.CompleteDelay", 0.001)
+    local cancelDelay = safeGetConfig("UltraBlatant.CancelDelay", 0.001)
     
     if _G.GetConfigValue then
-        print("✅ Fast Mode: Loaded settings from config")
+        print("✅ [UltraBlatant] Loaded settings from config")
     else
-        print("⚠️ Fast Mode: Config system not ready yet, using defaults")
+        print("⚠️ [UltraBlatant] Config not ready yet, using defaults")
     end
-    print("   MaxWaitTime:", maxWait, "| CancelDelay:", cancelDelay)
+    print("   CompleteDelay:", completeDelay, "| CancelDelay:", cancelDelay)
     
-    return maxWait, cancelDelay
+    return {
+        CompleteDelay = completeDelay,
+        CancelDelay = cancelDelay
+    }
 end
 
--- Load settings saat module pertama kali diinisialisasi
-local initialMaxWait, initialCancelDelay = loadConfigSettings()
+local savedSettings = loadSavedSettings()
 
--- Modul utama
-local fishing = {
-    Running = false,
-    WaitingHook = false,
-    CurrentCycle = 0,
-    TotalFish = 0,
-    Connections = {},
-    -- ⭐ Settings langsung dari config (dengan safety check)
-    Settings = {
-        FishingDelay = 0.01,
-        CancelDelay = initialCancelDelay,
-        HookDetectionDelay = 0.05,
-        RetryDelay = 0.1,
-        MaxWaitTime = initialMaxWait,
-    }
+-- Module table
+local UltraBlatant = {}
+UltraBlatant.Active = false
+UltraBlatant.Stats = {
+    castCount = 0,
+    startTime = 0
 }
 
-_G.FishingScriptFast = fishing
+-- ⭐ Settings langsung dari config (dengan auto-load)
+UltraBlatant.Settings = {
+    CompleteDelay = savedSettings.CompleteDelay,
+    CancelDelay = savedSettings.CancelDelay
+}
 
--- ⭐ Auto-refresh settings setiap kali akan Start (dengan safety check)
-local function refreshSettings()
-    local maxWait = safeGetConfig("InstantFishing.FishingDelay", fishing.Settings.MaxWaitTime)
-    local cancelDelay = safeGetConfig("InstantFishing.CancelDelay", fishing.Settings.CancelDelay)
+----------------------------------------------------------------
+-- CORE FUNCTIONS
+----------------------------------------------------------------
+
+local function safeFire(func)
+    task.spawn(function()
+        pcall(func)
+    end)
+end
+
+-- MAIN SPAM LOOP
+local function ultraSpamLoop()
+    while UltraBlatant.Active do
+        local currentTime = tick()
+        
+        -- 1x CHARGE & REQUEST (CASTING)
+        safeFire(function()
+            RF_ChargeFishingRod:InvokeServer({[1] = currentTime})
+        end)
+        safeFire(function()
+            RF_RequestMinigame:InvokeServer(1, 0, currentTime)
+        end)
+        
+        UltraBlatant.Stats.castCount = UltraBlatant.Stats.castCount + 1
+        
+        -- Wait CompleteDelay then fire complete once
+        task.wait(UltraBlatant.Settings.CompleteDelay)
+        
+        safeFire(function()
+            RE_FishingCompleted:FireServer()
+        end)
+        
+        -- Cancel with CancelDelay
+        task.wait(UltraBlatant.Settings.CancelDelay)
+        safeFire(function()
+            RF_CancelFishingInputs:InvokeServer()
+        end)
+    end
+end
+
+-- BACKUP LISTENER
+RE_MinigameChanged.OnClientEvent:Connect(function(state)
+    if not UltraBlatant.Active then return end
     
-    fishing.Settings.MaxWaitTime = maxWait
-    fishing.Settings.CancelDelay = cancelDelay
+    task.spawn(function()
+        task.wait(UltraBlatant.Settings.CompleteDelay)
+        
+        safeFire(function()
+            RE_FishingCompleted:FireServer()
+        end)
+        
+        task.wait(UltraBlatant.Settings.CancelDelay)
+        safeFire(function()
+            RF_CancelFishingInputs:InvokeServer()
+        end)
+    end)
+end)
+
+----------------------------------------------------------------
+-- PUBLIC API
+----------------------------------------------------------------
+
+-- ⭐ Auto-refresh settings dari config sebelum start (seperti instant mode)
+local function refreshSettings()
+    local completeDelay = safeGetConfig("UltraBlatant.CompleteDelay", UltraBlatant.Settings.CompleteDelay)
+    local cancelDelay = safeGetConfig("UltraBlatant.CancelDelay", UltraBlatant.Settings.CancelDelay)
+    
+    UltraBlatant.Settings.CompleteDelay = completeDelay
+    UltraBlatant.Settings.CancelDelay = cancelDelay
     
     if _G.GetConfigValue then
-        print("🔄 Fast Mode: Settings refreshed from config")
-        print("   MaxWaitTime:", fishing.Settings.MaxWaitTime, "| CancelDelay:", fishing.Settings.CancelDelay)
+        print("🔄 [UltraBlatant] Settings refreshed from config")
+        print("   CompleteDelay:", UltraBlatant.Settings.CompleteDelay, "| CancelDelay:", UltraBlatant.Settings.CancelDelay)
     end
 end
 
--- Nonaktifkan animasi
-local function disableFishingAnim()
-    pcall(function()
-        for _, track in pairs(Humanoid:GetPlayingAnimationTracks()) do
-            local name = track.Name:lower()
-            if name:find("fish") or name:find("rod") or name:find("cast") or name:find("reel") then
-                track:Stop(0)
-            end
-        end
-    end)
-
-    task.spawn(function()
-        local rod = Character:FindFirstChild("Rod") or Character:FindFirstChildWhichIsA("Tool")
-        if rod and rod:FindFirstChild("Handle") then
-            local handle = rod.Handle
-            local weld = handle:FindFirstChildOfClass("Weld") or handle:FindFirstChildOfClass("Motor6D")
-            if weld then
-                weld.C0 = CFrame.new(0, -1, -1.2) * CFrame.Angles(math.rad(-10), 0, 0)
-            end
-        end
-    end)
-end
-
--- Fungsi cast (⭐ Menggunakan Settings.MaxWaitTime dan Settings.CancelDelay)
-function fishing.Cast()
-    if not fishing.Running or fishing.WaitingHook then return end
-
-    disableFishingAnim()
-    fishing.CurrentCycle += 1
-
-    local castSuccess = pcall(function()
-        RF_ChargeFishingRod:InvokeServer({[10] = tick()})
-        task.wait(0.07)
-        RF_RequestMinigame:InvokeServer(9, 0, tick())
-        fishing.WaitingHook = true
-
-        task.delay(fishing.Settings.MaxWaitTime * 0.7, function()
-            if fishing.WaitingHook and fishing.Running then
-                pcall(function()
-                    RE_FishingCompleted:FireServer()
-                end)
-            end
-        end)
-
-        task.delay(fishing.Settings.MaxWaitTime, function()
-            if fishing.WaitingHook and fishing.Running then
-                fishing.WaitingHook = false
-                pcall(function()
-                    RE_FishingCompleted:FireServer()
-                end)
-
-                task.wait(fishing.Settings.RetryDelay)
-                pcall(function()
-                    RF_CancelFishingInputs:InvokeServer()
-                end)
-
-                task.wait(fishing.Settings.FishingDelay)
-                if fishing.Running then
-                    fishing.Cast()
-                end
-            end
-        end)
-    end)
-
-    if not castSuccess then
-        task.wait(fishing.Settings.RetryDelay)
-        if fishing.Running then
-            fishing.Cast()
-        end
+-- Start function (⭐ dengan auto-refresh)
+function UltraBlatant.Start()
+    if UltraBlatant.Active then 
+        print("⚠️ Ultra Blatant already running!")
+        return
     end
-end
-
--- Start (⭐ Auto-refresh settings sebelum start)
-function fishing.Start()
-    if fishing.Running then return end
     
     -- ⭐ Refresh settings dari config sebelum start
     refreshSettings()
     
-    fishing.Running = true
-    fishing.CurrentCycle = 0
-    fishing.TotalFish = 0
-
-    print("✅ Fast Mode Started with:")
-    print("   MaxWaitTime:", fishing.Settings.MaxWaitTime, "s")
-    print("   CancelDelay:", fishing.Settings.CancelDelay, "s")
-
-    disableFishingAnim()
-
-    fishing.Connections.Minigame = RE_MinigameChanged.OnClientEvent:Connect(function(state)
-        if fishing.WaitingHook and typeof(state) == "string" then
-            local s = string.lower(state)
-            if string.find(s, "hook") or string.find(s, "bite") or string.find(s, "catch") then
-                fishing.WaitingHook = false
-                task.wait(fishing.Settings.HookDetectionDelay)
-
-                pcall(function()
-                    RE_FishingCompleted:FireServer()
-                end)
-
-                task.wait(fishing.Settings.CancelDelay)
-                pcall(function()
-                    RF_CancelFishingInputs:InvokeServer()
-                end)
-
-                task.wait(fishing.Settings.FishingDelay)
-                if fishing.Running then
-                    fishing.Cast()
-                end
-            end
-        end
-    end)
-
-    fishing.Connections.Caught = RE_FishCaught.OnClientEvent:Connect(function(_, data)
-        if fishing.Running then
-            fishing.WaitingHook = false
-            fishing.TotalFish += 1
-
-            pcall(function()
-                task.wait(fishing.Settings.CancelDelay)
-                RF_CancelFishingInputs:InvokeServer()
-            end)
-
-            task.wait(fishing.Settings.FishingDelay)
-            if fishing.Running then
-                fishing.Cast()
-            end
-        end
-    end)
-
-    fishing.Connections.AnimDisabler = task.spawn(function()
-        while fishing.Running do
-            disableFishingAnim()
-            task.wait(0.15)
-        end
-    end)
-
-    task.wait(0.5)
-    fishing.Cast()
+    UltraBlatant.Active = true
+    UltraBlatant.Stats.castCount = 0
+    UltraBlatant.Stats.startTime = tick()
+    
+    print("✅ [UltraBlatant] Started with:")
+    print("   CompleteDelay:", UltraBlatant.Settings.CompleteDelay, "s")
+    print("   CancelDelay:", UltraBlatant.Settings.CancelDelay, "s")
+    
+    task.spawn(ultraSpamLoop)
 end
 
--- Stop
-function fishing.Stop()
-    if not fishing.Running then return end
-    fishing.Running = false
-    fishing.WaitingHook = false
-
-    for _, conn in pairs(fishing.Connections) do
-        if typeof(conn) == "RBXScriptConnection" then
-            conn:Disconnect()
-        elseif typeof(conn) == "thread" then
-            task.cancel(conn)
-        end
+-- Stop function
+function UltraBlatant.Stop()
+    if not UltraBlatant.Active then 
+        return
     end
-    fishing.Connections = {}
     
-    pcall(function()
+    UltraBlatant.Active = false
+    
+    print("✅ [UltraBlatant] Stopped. Stats:")
+    print("   Total Casts:", UltraBlatant.Stats.castCount)
+    print("   Runtime:", math.floor(tick() - UltraBlatant.Stats.startTime), "seconds")
+    
+    -- ⭐ Nyalakan auto fishing game (biarkan tetap nyala)
+    safeFire(function()
         RF_UpdateAutoFishingState:InvokeServer(true)
     end)
     
+    -- Wait sebentar untuk game process
     task.wait(0.2)
     
-    pcall(function()
+    -- Cancel fishing inputs untuk memastikan karakter berhenti
+    safeFire(function()
         RF_CancelFishingInputs:InvokeServer()
     end)
     
-    print("✅ Fast Mode stopped - Game auto fishing enabled, can change rod/skin")
+    print("✅ [UltraBlatant] Game auto fishing enabled, can change rod/skin")
 end
 
--- ⭐ Function untuk update settings dari GUI (tetap ada untuk backward compatibility)
-function fishing.UpdateSettings(maxWaitTime, cancelDelay)
-    if maxWaitTime then
-        fishing.Settings.MaxWaitTime = maxWaitTime
-        print("✅ Fast Mode MaxWaitTime updated to:", maxWaitTime)
+-- ⭐ Update Settings function (backward compatibility dengan GUI)
+function UltraBlatant.UpdateSettings(completeDelay, cancelDelay)
+    if completeDelay ~= nil then
+        UltraBlatant.Settings.CompleteDelay = completeDelay
+        print("✅ [UltraBlatant] CompleteDelay updated:", completeDelay)
     end
-    if cancelDelay then
-        fishing.Settings.CancelDelay = cancelDelay
-        print("✅ Fast Mode CancelDelay updated to:", cancelDelay)
+    
+    if cancelDelay ~= nil then
+        UltraBlatant.Settings.CancelDelay = cancelDelay
+        print("✅ [UltraBlatant] CancelDelay updated:", cancelDelay)
     end
 end
 
-return fishing
+-- Return module
+return UltraBlatant
