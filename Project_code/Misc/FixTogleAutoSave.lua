@@ -1781,6 +1781,21 @@ end)
 -- Blatant Tester Category
 local catBlatantV2 = makeCategory(mainPage, "Blatant Tester", "🎯")
 
+-- ⭐ Load saved settings first
+local savedBlatantTesterCompleteDelay = GetConfigValue("BlatantTester.CompleteDelay", 0.5)
+local savedBlatantTesterCancelDelay = GetConfigValue("BlatantTester.CancelDelay", 0.1)
+
+-- ⭐ Apply settings to module immediately on load
+task.spawn(function()
+    task.wait(0.5)
+    local blatantv2fix = GetModule("blatantv2fix")
+    if blatantv2fix then
+        blatantv2fix.Settings.CompleteDelay = savedBlatantTesterCompleteDelay
+        blatantv2fix.Settings.CancelDelay = savedBlatantTesterCancelDelay
+        print("✅ BlatantTester settings loaded from config")
+    end
+end)
+
 ToggleReferences.BlatantTester = makeToggle(catBlatantV2, "Blatant Tester", function(on)
     SetConfigValue("BlatantTester.Enabled", on)
     SaveCurrentConfig()
@@ -1791,23 +1806,27 @@ ToggleReferences.BlatantTester = makeToggle(catBlatantV2, "Blatant Tester", func
     end
 end)
 
-makeInput(catBlatantV2, "Complete Delay", GetConfigValue("BlatantTester.CompleteDelay", 0.5), function(v)
+-- ⭐ PENTING: Gunakan variable savedBlatantTesterCompleteDelay
+makeInput(catBlatantV2, "Complete Delay", savedBlatantTesterCompleteDelay, function(v)
     SetConfigValue("BlatantTester.CompleteDelay", v)
     SaveCurrentConfig()
     
     local blatantv2fix = GetModule("blatantv2fix")
     if blatantv2fix then
         blatantv2fix.Settings.CompleteDelay = v
+        print("✅ BlatantTester CompleteDelay updated to:", v)
     end
 end)
 
-makeInput(catBlatantV2, "Cancel Delay", GetConfigValue("BlatantTester.CancelDelay", 0.1), function(v)
+-- ⭐ PENTING: Gunakan variable savedBlatantTesterCancelDelay
+makeInput(catBlatantV2, "Cancel Delay", savedBlatantTesterCancelDelay, function(v)
     SetConfigValue("BlatantTester.CancelDelay", v)
     SaveCurrentConfig()
     
     local blatantv2fix = GetModule("blatantv2fix")
     if blatantv2fix then
         blatantv2fix.Settings.CancelDelay = v
+        print("✅ BlatantTester CancelDelay updated to:", v)
     end
 end)
 
@@ -1839,7 +1858,7 @@ ToggleReferences.BlatantV1 = makeToggle(catBlatantV1, "Blatant Mode", function(o
     end
 end)
 
--- ⭐ PENTING: Gunakan variable savedBlatantV1CompleteDelay, BUKAN GetConfigValue lagi
+-- ⭐ PENTING: Gunakan variable savedBlatantV1CompleteDelay
 makeInput(catBlatantV1, "Complete Delay", savedBlatantV1CompleteDelay, function(v)
     SetConfigValue("BlatantV1.CompleteDelay", v)
     SaveCurrentConfig()
@@ -1851,7 +1870,7 @@ makeInput(catBlatantV1, "Complete Delay", savedBlatantV1CompleteDelay, function(
     end
 end)
 
--- ⭐ PENTING: Gunakan variable savedBlatantV1CancelDelay, BUKAN GetConfigValue lagi
+-- ⭐ PENTING: Gunakan variable savedBlatantV1CancelDelay
 makeInput(catBlatantV1, "Cancel Delay", savedBlatantV1CancelDelay, function(v)
     SetConfigValue("BlatantV1.CancelDelay", v)
     SaveCurrentConfig()
@@ -1866,7 +1885,29 @@ end)
 -- Ultra Blatant V2 Category
 local catUltraBlatant = makeCategory(mainPage, "Blatant V2", "⚡")
 
-ToggleReferences.UltraBlatant = makeToggle(catUltraBlatant, "Ultra Blatant Mode", function(on)
+-- ⭐ Load saved settings first
+local savedUltraBlatantCompleteDelay = GetConfigValue("UltraBlatant.CompleteDelay", 0.05)
+local savedUltraBlatantCancelDelay = GetConfigValue("UltraBlatant.CancelDelay", 0.1)
+
+-- ⭐ Apply settings to module immediately on load
+task.spawn(function()
+    task.wait(0.5)
+    local UltraBlatant = GetModule("UltraBlatant")
+    if UltraBlatant then
+        -- Cek apakah module punya Settings table
+        if UltraBlatant.Settings then
+            UltraBlatant.Settings.CompleteDelay = savedUltraBlatantCompleteDelay
+            UltraBlatant.Settings.CancelDelay = savedUltraBlatantCancelDelay
+            print("✅ UltraBlatant settings loaded from config")
+        -- Kalau punya UpdateSettings function
+        elseif UltraBlatant.UpdateSettings then
+            UltraBlatant.UpdateSettings(savedUltraBlatantCompleteDelay, savedUltraBlatantCancelDelay, nil)
+            print("✅ UltraBlatant settings loaded via UpdateSettings")
+        end
+    end
+end)
+
+ToggleReferences.UltraBlatant = makeToggle(catUltraBlatant, "Blatant Mode", function(on)
     SetConfigValue("UltraBlatant.Enabled", on)
     SaveCurrentConfig()
     
@@ -1876,26 +1917,44 @@ ToggleReferences.UltraBlatant = makeToggle(catUltraBlatant, "Ultra Blatant Mode"
     end
 end)
 
-makeInput(catUltraBlatant, "Complete Delay", GetConfigValue("UltraBlatant.CompleteDelay", 0.05), function(v)
+-- ⭐ PENTING: Gunakan variable savedUltraBlatantCompleteDelay
+makeInput(catUltraBlatant, "Complete Delay", savedUltraBlatantCompleteDelay, function(v)
     SetConfigValue("UltraBlatant.CompleteDelay", v)
     SaveCurrentConfig()
     
     local UltraBlatant = GetModule("UltraBlatant")
-    if UltraBlatant then UltraBlatant.UpdateSettings(v, nil, nil) end
+    if UltraBlatant then
+        if UltraBlatant.Settings then
+            UltraBlatant.Settings.CompleteDelay = v
+            print("✅ UltraBlatant CompleteDelay updated to:", v)
+        elseif UltraBlatant.UpdateSettings then
+            UltraBlatant.UpdateSettings(v, nil, nil)
+            print("✅ UltraBlatant CompleteDelay updated via UpdateSettings to:", v)
+        end
+    end
 end)
 
-makeInput(catUltraBlatant, "Cancel Delay", GetConfigValue("UltraBlatant.CancelDelay", 0.1), function(v)
+-- ⭐ PENTING: Gunakan variable savedUltraBlatantCancelDelay
+makeInput(catUltraBlatant, "Cancel Delay", savedUltraBlatantCancelDelay, function(v)
     SetConfigValue("UltraBlatant.CancelDelay", v)
     SaveCurrentConfig()
     
     local UltraBlatant = GetModule("UltraBlatant")
-    if UltraBlatant then UltraBlatant.UpdateSettings(nil, v, nil) end
+    if UltraBlatant then
+        if UltraBlatant.Settings then
+            UltraBlatant.Settings.CancelDelay = v
+            print("✅ UltraBlatant CancelDelay updated to:", v)
+        elseif UltraBlatant.UpdateSettings then
+            UltraBlatant.UpdateSettings(nil, v, nil)
+            print("✅ UltraBlatant CancelDelay updated via UpdateSettings to:", v)
+        end
+    end
 end)
 
 -- Fast Auto Fishing Perfect Category
 local catBlatantV2Fast = makeCategory(mainPage, "Fast Auto Fishing Perfect", "🔥")
 
-ToggleReferences.FastAutoPerfect = makeToggle(catBlatantV2Fast, "Blatant Features", function(on)
+ToggleReferences.FastAutoPerfect = makeToggle(catBlatantV2Fast, "Fast Fishing Features", function(on)
     SetConfigValue("FastAutoPerfect.Enabled", on)
     SaveCurrentConfig()
     
