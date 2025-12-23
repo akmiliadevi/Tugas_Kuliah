@@ -1814,6 +1814,21 @@ end)
 -- Blatant V1 Category
 local catBlatantV1 = makeCategory(mainPage, "Blatant V1", "💀")
 
+-- ⭐ Load saved settings first
+local savedBlatantV1CompleteDelay = GetConfigValue("BlatantV1.CompleteDelay", 0.05)
+local savedBlatantV1CancelDelay = GetConfigValue("BlatantV1.CancelDelay", 0.1)
+
+-- ⭐ Apply settings to module immediately on load
+task.spawn(function()
+    task.wait(0.5)
+    local blatantv1 = GetModule("blatantv1")
+    if blatantv1 then
+        blatantv1.Settings.CompleteDelay = savedBlatantV1CompleteDelay
+        blatantv1.Settings.CancelDelay = savedBlatantV1CancelDelay
+        print("✅ BlatantV1 settings loaded from config")
+    end
+end)
+
 ToggleReferences.BlatantV1 = makeToggle(catBlatantV1, "Blatant Mode", function(on)
     SetConfigValue("BlatantV1.Enabled", on)
     SaveCurrentConfig()
@@ -1824,20 +1839,28 @@ ToggleReferences.BlatantV1 = makeToggle(catBlatantV1, "Blatant Mode", function(o
     end
 end)
 
-makeInput(catBlatantV1, "Complete Delay", GetConfigValue("BlatantV1.CompleteDelay", 0.05), function(v)
+-- ⭐ PENTING: Gunakan variable savedBlatantV1CompleteDelay, BUKAN GetConfigValue lagi
+makeInput(catBlatantV1, "Complete Delay", savedBlatantV1CompleteDelay, function(v)
     SetConfigValue("BlatantV1.CompleteDelay", v)
     SaveCurrentConfig()
     
     local blatantv1 = GetModule("blatantv1")
-    if blatantv1 then blatantv1.Settings.CompleteDelay = v end
+    if blatantv1 then 
+        blatantv1.Settings.CompleteDelay = v
+        print("✅ BlatantV1 CompleteDelay updated to:", v)
+    end
 end)
 
-makeInput(catBlatantV1, "Cancel Delay", GetConfigValue("BlatantV1.CancelDelay", 0.1), function(v)
+-- ⭐ PENTING: Gunakan variable savedBlatantV1CancelDelay, BUKAN GetConfigValue lagi
+makeInput(catBlatantV1, "Cancel Delay", savedBlatantV1CancelDelay, function(v)
     SetConfigValue("BlatantV1.CancelDelay", v)
     SaveCurrentConfig()
     
     local blatantv1 = GetModule("blatantv1")
-    if blatantv1 then blatantv1.Settings.CancelDelay = v end
+    if blatantv1 then 
+        blatantv1.Settings.CancelDelay = v
+        print("✅ BlatantV1 CancelDelay updated to:", v)
+    end
 end)
 
 -- Ultra Blatant V2 Category
