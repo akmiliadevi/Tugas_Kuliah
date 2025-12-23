@@ -3237,25 +3237,6 @@ gui.Destroying:Connect(function()
 end)
 
 -- ============================================
--- MEMORY OPTIMIZATION
--- ============================================
-
--- Reduce memory usage by clearing unused references
-task.spawn(function()
-    task.wait(5)
-    
-    -- Clear module status after GUI loads
-    ModuleStatus = nil
-    failedModules = nil
-    
-    -- Garbage collect
-    if not isMobile then
-        task.wait(2)
-        collectgarbage("collect")
-    end
-end)
-
--- ============================================
 -- FINAL SUCCESS NOTIFICATION
 -- ============================================
 
