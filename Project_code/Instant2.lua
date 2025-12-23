@@ -1,4 +1,4 @@
--- ⚡ ULTRA PERFECT CAST AUTO FISHING v35.0 (Fixed Stuck & Stop)
+-- ⚡ ULTRA PERFECT CAST AUTO FISHING v35.1 (Auto Sync GUI Settings)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -20,11 +20,30 @@ local netFolder = ReplicatedStorage
 local RF_ChargeFishingRod = netFolder:WaitForChild("RF/ChargeFishingRod")
 local RF_RequestMinigame = netFolder:WaitForChild("RF/RequestFishingMinigameStarted")
 local RF_CancelFishingInputs = netFolder:WaitForChild("RF/CancelFishingInputs")
-local RF_UpdateAutoFishingState = netFolder:WaitForChild("RF/UpdateAutoFishingState")  -- ⭐ ADDED
+local RF_UpdateAutoFishingState = netFolder:WaitForChild("RF/UpdateAutoFishingState")
 local RE_FishingCompleted = netFolder:WaitForChild("RE/FishingCompleted")
 local RE_MinigameChanged = netFolder:WaitForChild("RE/FishingMinigameChanged")
 local RE_FishCaught = netFolder:WaitForChild("RE/FishCaught")
-local RE_FishingStopped = netFolder:WaitForChild("RE/FishingStopped")  -- ⭐ ADDED untuk detect fail
+local RE_FishingStopped = netFolder:WaitForChild("RE/FishingStopped")
+
+-- ⭐ NEW: Load saved settings dari GUI config
+local function loadSavedSettings()
+    local saved = {
+        MaxWaitTime = 1.5,  -- Default values
+        CancelDelay = 0.19
+    }
+    
+    -- Try to get saved values from config
+    if GetConfigValue then
+        saved.MaxWaitTime = GetConfigValue("InstantFishing.FishingDelay", 1.5)
+        saved.CancelDelay = GetConfigValue("InstantFishing.CancelDelay", 0.19)
+        print("🎣 [Perfect Mode] Loaded settings - Fishing Delay:", saved.MaxWaitTime, "Cancel Delay:", saved.CancelDelay)
+    end
+    
+    return saved
+end
+
+local savedSettings = loadSavedSettings()
 
 local fishing = {
     Running = false,
@@ -33,15 +52,15 @@ local fishing = {
     TotalFish = 0,
     PerfectCasts = 0,
     AmazingCasts = 0,
-    FailedCasts = 0,  -- ⭐ ADDED
+    FailedCasts = 0,
     Connections = {},
     Settings = {
         FishingDelay = 0.07,
-        CancelDelay = 0.19,
+        CancelDelay = savedSettings.CancelDelay,  -- ⭐ Use saved value
         HookDetectionDelay = 0.03,
         RetryDelay = 0.04,
-        MaxWaitTime = 1.5,
-        FailTimeout = 2.5,  -- ⭐ ADDED: Timeout untuk detect stuck
+        MaxWaitTime = savedSettings.MaxWaitTime,  -- ⭐ Use saved value
+        FailTimeout = 2.5,
         PerfectChargeTime = 0.34,
         PerfectReleaseDelay = 0.005,
         PerfectPower = 0.95,
@@ -52,6 +71,11 @@ local fishing = {
 }
 
 _G.FishingScript = fishing
+
+-- ⭐ Log initial settings
+print("✅ [Perfect Mode] Initial Settings:")
+print("   - MaxWaitTime (Fishing Delay):", fishing.Settings.MaxWaitTime)
+print("   - CancelDelay:", fishing.Settings.CancelDelay)
 
 local function disableFishingAnim()
     pcall(function()
@@ -76,19 +100,16 @@ local function disableFishingAnim()
     end)
 end
 
--- ⭐ ADDED: Function untuk handle failed cast (kail tidak menyentuh air)
 local function handleFailedCast()
     fishing.WaitingHook = false
     fishing.FailedCasts += 1
     
-    -- Cancel & reset state
     pcall(function()
         RF_CancelFishingInputs:InvokeServer()
     end)
     
     task.wait(fishing.Settings.RetryDelay)
     
-    -- Retry cast
     if fishing.Running then
         fishing.PerfectCast()
     end
@@ -128,7 +149,6 @@ function fishing.PerfectCast()
             releaseTime
         )
         
-        -- ⭐ FIX: Check jika minigame failed (kail tidak menyentuh air)
         if not minigameResult then 
             handleFailedCast()
             return
@@ -136,7 +156,7 @@ function fishing.PerfectCast()
 
         fishing.WaitingHook = true
         local hookDetected = false
-        local castStartTime = tick()  -- ⭐ ADDED: Track cast time
+        local castStartTime = tick()
         local eventDetection
 
         eventDetection = RE_MinigameChanged.OnClientEvent:Connect(function(state)
@@ -166,7 +186,6 @@ function fishing.PerfectCast()
             end
         end)
 
-        -- ⭐ ENHANCED: Timeout dengan fail detection
         task.delay(fishing.Settings.MaxWaitTime, function()
             if fishing.WaitingHook and fishing.Running then
                 if not hookDetected then
@@ -190,12 +209,10 @@ function fishing.PerfectCast()
             end
         end)
         
-        -- ⭐ ADDED: Emergency fail timeout (untuk detect stuck)
         task.delay(fishing.Settings.FailTimeout, function()
             if fishing.WaitingHook and fishing.Running then
                 local elapsedTime = tick() - castStartTime
                 
-                -- Jika masih waiting setelah FailTimeout, berarti stuck
                 if elapsedTime >= fishing.Settings.FailTimeout then
                     if eventDetection then
                         eventDetection:Disconnect()
@@ -222,11 +239,14 @@ function fishing.Start()
     fishing.TotalFish = 0
     fishing.PerfectCasts = 0
     fishing.AmazingCasts = 0
-    fishing.FailedCasts = 0  -- ⭐ ADDED
+    fishing.FailedCasts = 0
+
+    print("🎣 [Perfect Mode] Starting with settings:")
+    print("   - MaxWaitTime:", fishing.Settings.MaxWaitTime)
+    print("   - CancelDelay:", fishing.Settings.CancelDelay)
 
     disableFishingAnim()
 
-    -- ⭐ ADDED: Listen untuk fishing stopped (detect kail tidak menyentuh air)
     fishing.Connections.FishingStopped = RE_FishingStopped.OnClientEvent:Connect(function()
         if fishing.Running and fishing.WaitingHook then
             handleFailedCast()
@@ -274,11 +294,15 @@ function fishing.Start()
     fishing.PerfectCast()
 end
 
--- ⭐ ENHANCED Stop - Nyalakan auto fishing game
 function fishing.Stop()
     if not fishing.Running then return end
     fishing.Running = false
     fishing.WaitingHook = false
+
+    print("🎣 [Perfect Mode] Stopped. Stats:")
+    print("   - Total Fish:", fishing.TotalFish)
+    print("   - Perfect Casts:", fishing.PerfectCasts)
+    print("   - Failed Casts:", fishing.FailedCasts)
 
     for _, conn in pairs(fishing.Connections) do
         if typeof(conn) == "RBXScriptConnection" then
@@ -290,15 +314,12 @@ function fishing.Stop()
 
     fishing.Connections = {}
     
-    -- ⭐ Nyalakan auto fishing game (biarkan tetap nyala)
     pcall(function()
         RF_UpdateAutoFishingState:InvokeServer(true)
     end)
     
-    -- Wait sebentar untuk game process
     task.wait(0.2)
     
-    -- Cancel fishing inputs untuk memastikan karakter berhenti
     pcall(function()
         RF_CancelFishingInputs:InvokeServer()
     end)
