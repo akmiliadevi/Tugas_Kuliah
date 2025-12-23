@@ -1,4 +1,4 @@
--- ⚡ ULTRA SPEED AUTO FISHING v29.3 (Fast Mode - Auto-Sync with GUI Config)
+-- ⚡ ULTRA SPEED AUTO FISHING v29.4 (Fast Mode - Safe Config Loading)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
@@ -26,19 +26,34 @@ local RE_FishingCompleted = netFolder:WaitForChild("RE/FishingCompleted")
 local RE_MinigameChanged = netFolder:WaitForChild("RE/FishingMinigameChanged")
 local RE_FishCaught = netFolder:WaitForChild("RE/FishCaught")
 
--- ⭐ AUTO-LOAD SETTINGS FROM CONFIG
-local function loadConfigSettings()
-    -- Cek apakah GetConfigValue tersedia
-    if _G.GetConfigValue then
-        local maxWait = _G.GetConfigValue("InstantFishing.FishingDelay", 1.30)
-        local cancelDelay = _G.GetConfigValue("InstantFishing.CancelDelay", 0.19)
-        print("✅ Fast Mode: Loaded settings from config")
-        print("   MaxWaitTime:", maxWait, "| CancelDelay:", cancelDelay)
-        return maxWait, cancelDelay
-    else
-        print("⚠️ Fast Mode: Config system not ready, using defaults")
-        return 1.30, 0.19
+-- ⭐ SAFE CONFIG LOADING - Check if function exists
+local function safeGetConfig(key, default)
+    -- Check if GetConfigValue exists in _G
+    if _G.GetConfigValue and type(_G.GetConfigValue) == "function" then
+        local success, value = pcall(function()
+            return _G.GetConfigValue(key, default)
+        end)
+        if success and value ~= nil then
+            return value
+        end
     end
+    -- Return default if function doesn't exist or fails
+    return default
+end
+
+-- ⭐ AUTO-LOAD SETTINGS FROM CONFIG (with safety check)
+local function loadConfigSettings()
+    local maxWait = safeGetConfig("InstantFishing.FishingDelay", 1.30)
+    local cancelDelay = safeGetConfig("InstantFishing.CancelDelay", 0.19)
+    
+    if _G.GetConfigValue then
+        print("✅ Fast Mode: Loaded settings from config")
+    else
+        print("⚠️ Fast Mode: Config system not ready yet, using defaults")
+    end
+    print("   MaxWaitTime:", maxWait, "| CancelDelay:", cancelDelay)
+    
+    return maxWait, cancelDelay
 end
 
 -- Load settings saat module pertama kali diinisialisasi
@@ -51,23 +66,27 @@ local fishing = {
     CurrentCycle = 0,
     TotalFish = 0,
     Connections = {},
-    -- ⭐ Settings langsung dari config
+    -- ⭐ Settings langsung dari config (dengan safety check)
     Settings = {
         FishingDelay = 0.01,
-        CancelDelay = initialCancelDelay,           -- ⭐ Auto-loaded dari config
+        CancelDelay = initialCancelDelay,
         HookDetectionDelay = 0.05,
         RetryDelay = 0.1,
-        MaxWaitTime = initialMaxWait,               -- ⭐ Auto-loaded dari config
+        MaxWaitTime = initialMaxWait,
     }
 }
 
 _G.FishingScriptFast = fishing
 
--- ⭐ Auto-refresh settings setiap kali akan Start
+-- ⭐ Auto-refresh settings setiap kali akan Start (dengan safety check)
 local function refreshSettings()
+    local maxWait = safeGetConfig("InstantFishing.FishingDelay", fishing.Settings.MaxWaitTime)
+    local cancelDelay = safeGetConfig("InstantFishing.CancelDelay", fishing.Settings.CancelDelay)
+    
+    fishing.Settings.MaxWaitTime = maxWait
+    fishing.Settings.CancelDelay = cancelDelay
+    
     if _G.GetConfigValue then
-        fishing.Settings.MaxWaitTime = _G.GetConfigValue("InstantFishing.FishingDelay", 1.30)
-        fishing.Settings.CancelDelay = _G.GetConfigValue("InstantFishing.CancelDelay", 0.19)
         print("🔄 Fast Mode: Settings refreshed from config")
         print("   MaxWaitTime:", fishing.Settings.MaxWaitTime, "| CancelDelay:", fishing.Settings.CancelDelay)
     end
@@ -109,7 +128,6 @@ function fishing.Cast()
         RF_RequestMinigame:InvokeServer(9, 0, tick())
         fishing.WaitingHook = true
 
-        -- ⭐ Gunakan Settings.MaxWaitTime
         task.delay(fishing.Settings.MaxWaitTime * 0.7, function()
             if fishing.WaitingHook and fishing.Running then
                 pcall(function()
@@ -118,7 +136,6 @@ function fishing.Cast()
             end
         end)
 
-        -- ⭐ Gunakan Settings.MaxWaitTime
         task.delay(fishing.Settings.MaxWaitTime, function()
             if fishing.WaitingHook and fishing.Running then
                 fishing.WaitingHook = false
@@ -175,7 +192,6 @@ function fishing.Start()
                     RE_FishingCompleted:FireServer()
                 end)
 
-                -- ⭐ Gunakan Settings.CancelDelay dari config
                 task.wait(fishing.Settings.CancelDelay)
                 pcall(function()
                     RF_CancelFishingInputs:InvokeServer()
@@ -195,7 +211,6 @@ function fishing.Start()
             fishing.TotalFish += 1
 
             pcall(function()
-                -- ⭐ Gunakan Settings.CancelDelay dari config
                 task.wait(fishing.Settings.CancelDelay)
                 RF_CancelFishingInputs:InvokeServer()
             end)
@@ -233,15 +248,12 @@ function fishing.Stop()
     end
     fishing.Connections = {}
     
-    -- ⭐ Nyalakan auto fishing game (biarkan tetap nyala)
     pcall(function()
         RF_UpdateAutoFishingState:InvokeServer(true)
     end)
     
-    -- Wait sebentar untuk game process
     task.wait(0.2)
     
-    -- Cancel fishing inputs untuk memastikan karakter berhenti
     pcall(function()
         RF_CancelFishingInputs:InvokeServer()
     end)
