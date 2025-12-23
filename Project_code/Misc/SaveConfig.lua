@@ -1,363 +1,313 @@
--- SaveConfig.lua - Lynx GUI Configuration Manager
--- ULTRA SAFE VERSION - Fixed for GUI integration
+-- ConfigSystem.lua
+-- Auto Save/Load Configuration System for Lynx GUI
+-- FREE NOT FOR SALE
 
-print("[SaveConfig] 🔄 Module starting...")
+local HttpService = game:GetService("HttpService")
 
--- ============================================
--- SAFETY CHECKS
--- ============================================
-local function safeCheck()
-    assert(game, "game is nil")
-    assert(game.GetService, "game.GetService is nil")
-    return true
-end
-
-pcall(safeCheck)
+local ConfigSystem = {}
+ConfigSystem.Version = "1.0"
 
 -- ============================================
--- MAIN MODULE
+-- CONFIG SETTINGS
 -- ============================================
-local SaveConfig = {
-    ConfigFile = "LynxGUI_Config.json",
-    _data = {},
-    _loaded = false
-}
+local CONFIG_FOLDER = "LynxGUI_Configs"
+local CONFIG_FILE = CONFIG_FOLDER .. "/lynx_config.json"
 
--- Default configuration
+-- ============================================
+-- DEFAULT CONFIG STRUCTURE
+-- ============================================
 local DefaultConfig = {
-    InstantFishingMode = "None",
-    InstantFishingEnabled = false,
-    FishingDelay = 1.30,
-    CancelDelay = 0.19,
-    HideStatsEnabled = false,
-    HideStatsFakeName = "Guest",
-    HideStatsFakeLevel = "1",
-    WebhookEnabled = false,
-    WebhookURL = "",
-    WebhookDiscordID = "",
-    WebhookSelectedRarities = {},
+    -- Main Page - Auto Fishing
+    InstantFishing = {
+        Mode = "None", -- "Fast", "Perfect", "None"
+        Enabled = false,
+        FishingDelay = 1.30,
+        CancelDelay = 0.19
+    },
+    
+    -- Blatant Tester
+    BlatantTester = {
+        Enabled = false,
+        CompleteDelay = 0.5,
+        CancelDelay = 0.1
+    },
+    
+    -- Blatant V1
+    BlatantV1 = {
+        Enabled = false,
+        CompleteDelay = 0.05,
+        CancelDelay = 0.1
+    },
+    
+    -- Ultra Blatant (Blatant V2)
+    UltraBlatant = {
+        Enabled = false,
+        CompleteDelay = 0.05,
+        CancelDelay = 0.1
+    },
+    
+    -- Fast Auto Fishing Perfect
+    FastAutoPerfect = {
+        Enabled = false,
+        FishingDelay = 0.05,
+        CancelDelay = 0.01,
+        TimeoutDelay = 0.8
+    },
+    
+    -- Support Features
+    Support = {
+        NoFishingAnimation = false,
+        LockPosition = false,
+        AutoEquipRod = false,
+        DisableCutscenes = false,
+        DisableObtainedNotif = false,
+        DisableSkinEffect = false,
+        WalkOnWater = false,
+        GoodPerfectionStable = false
+    },
+    
+    -- Teleport
+    Teleport = {
+        SavedLocation = nil,
+        LastEventSelected = nil,
+        AutoTeleportEvent = false
+    },
+    
+    -- Shop
+    Shop = {
+        AutoSellTimer = {
+            Enabled = false,
+            Interval = 5
+        },
+        AutoBuyWeather = {
+            Enabled = false,
+            SelectedWeathers = {}
+        }
+    },
+    
+    -- Webhook
+    Webhook = {
+        Enabled = false,
+        URL = "",
+        DiscordID = "",
+        EnabledRarities = {}
+    },
+    
+    -- Camera View
+    CameraView = {
+        UnlimitedZoom = false,
+        Freecam = {
+            Enabled = false,
+            Speed = 50,
+            Sensitivity = 0.3
+        }
+    },
+    
+    -- Settings
+    Settings = {
+        AntiAFK = false,
+        FPSBooster = false,
+        DisableRendering = false,
+        FPSLimit = 60,
+        HideStats = {
+            Enabled = false,
+            FakeName = "Guest",
+            FakeLevel = "1"
+        }
+    }
 }
+
+local CurrentConfig = {}
 
 -- ============================================
 -- UTILITY FUNCTIONS
 -- ============================================
 
-local function deepCopy(original)
-    if type(original) ~= "table" then 
-        return original 
-    end
-    
+-- Deep copy table
+local function DeepCopy(original)
     local copy = {}
     for k, v in pairs(original) do
-        copy[k] = type(v) == "table" and deepCopy(v) or v
+        if type(v) == "table" then
+            copy[k] = DeepCopy(v)
+        else
+            copy[k] = v
+        end
     end
     return copy
 end
 
--- ============================================
--- CORE FUNCTIONS
--- ============================================
-
-function SaveConfig.Initialize()
-    SaveConfig._data = deepCopy(DefaultConfig)
-    SaveConfig._loaded = true
-    print("[SaveConfig] ✅ Initialized")
-    return true
+-- Merge tables (updates existing values, adds new ones)
+local function MergeTables(target, source)
+    for k, v in pairs(source) do
+        if type(v) == "table" and type(target[k]) == "table" then
+            MergeTables(target[k], v)
+        else
+            target[k] = v
+        end
+    end
 end
 
-function SaveConfig.Save()
-    if not writefile then
-        warn("[SaveConfig] ⚠️ writefile not available")
-        return false, "Executor tidak support writefile"
+-- ============================================
+-- FOLDER MANAGEMENT
+-- ============================================
+local function EnsureFolderExists()
+    if not isfolder(CONFIG_FOLDER) then
+        print("📁 [ConfigSystem] Creating config folder:", CONFIG_FOLDER)
+        makefolder(CONFIG_FOLDER)
+        print("✅ [ConfigSystem] Folder created!")
     end
+end
+
+-- ============================================
+-- SAVE CONFIG
+-- ============================================
+function ConfigSystem.Save()
+    print("💾 [ConfigSystem] Saving configuration...")
     
     local success, err = pcall(function()
-        local HttpService = game:GetService("HttpService")
-        local encoded = HttpService:JSONEncode(SaveConfig._data)
-        writefile(SaveConfig.ConfigFile, encoded)
+        EnsureFolderExists()
+        
+        local jsonData = HttpService:JSONEncode(CurrentConfig)
+        writefile(CONFIG_FILE, jsonData)
     end)
     
     if success then
-        print("[SaveConfig] ✅ Saved")
-        return true, "Config tersimpan!"
+        print("✅ [ConfigSystem] Configuration saved successfully!")
+        return true, "Config saved!"
     else
-        warn("[SaveConfig] ❌ Save failed:", err)
-        return false, "Gagal: " .. tostring(err)
+        warn("❌ [ConfigSystem] Save failed:", err)
+        return false, "Save failed: " .. tostring(err)
     end
 end
 
-function SaveConfig.Load()
-    if not isfile or not readfile then
-        warn("[SaveConfig] ⚠️ File functions not available")
-        SaveConfig.Initialize()
-        return false, "Executor tidak support readfile"
-    end
+-- ============================================
+-- LOAD CONFIG
+-- ============================================
+function ConfigSystem.Load()
+    print("🔄 [ConfigSystem] Loading configuration...")
     
-    if not isfile(SaveConfig.ConfigFile) then
-        SaveConfig.Initialize()
-        return false, "Tidak ada config tersimpan"
-    end
+    EnsureFolderExists()
     
-    local success, result = pcall(function()
-        local data = readfile(SaveConfig.ConfigFile)
-        local HttpService = game:GetService("HttpService")
-        return HttpService:JSONDecode(data)
-    end)
+    -- Start with default config
+    CurrentConfig = DeepCopy(DefaultConfig)
     
-    if success and result then
-        -- Merge with defaults
-        for key, value in pairs(DefaultConfig) do
-            if result[key] == nil then
-                result[key] = value
-            end
-        end
+    if isfile(CONFIG_FILE) then
+        print("📁 [ConfigSystem] Config file found!")
         
-        SaveConfig._data = result
-        SaveConfig._loaded = true
-        print("[SaveConfig] ✅ Loaded")
-        return true, "Config dimuat!"
-    else
-        SaveConfig.Initialize()
-        return false, "Gagal load config"
-    end
-end
-
-function SaveConfig.Get(key)
-    return SaveConfig._data[key]
-end
-
-function SaveConfig.Set(key, value)
-    SaveConfig._data[key] = value
-end
-
-function SaveConfig.GetAll()
-    return SaveConfig._data
-end
-
-function SaveConfig.Reset()
-    SaveConfig.Initialize()
-    return SaveConfig.Save()
-end
-
-function SaveConfig.Delete()
-    if not delfile or not isfile then
-        SaveConfig.Initialize()
-        return true, "Reset to defaults"
-    end
-    
-    pcall(function()
-        if isfile(SaveConfig.ConfigFile) then
-            delfile(SaveConfig.ConfigFile)
+        local success, result = pcall(function()
+            local jsonData = readfile(CONFIG_FILE)
+            local loadedConfig = HttpService:JSONDecode(jsonData)
+            
+            -- Merge loaded config with defaults (preserves new settings)
+            MergeTables(CurrentConfig, loadedConfig)
+        end)
+        
+        if success then
+            print("✅ [ConfigSystem] Configuration loaded successfully!")
+            return true, CurrentConfig
+        else
+            warn("❌ [ConfigSystem] Load failed:", result)
+            warn("⚠️ [ConfigSystem] Using default configuration")
+            return false, CurrentConfig
         end
-    end)
-    
-    SaveConfig.Initialize()
-    return true, "Config dihapus!"
+    else
+        print("⚠️ [ConfigSystem] No saved config found, using defaults")
+        return false, CurrentConfig
+    end
 end
 
-function SaveConfig.Exists()
-    if not isfile then 
-        return false 
+-- ============================================
+-- GET/SET FUNCTIONS
+-- ============================================
+
+-- Get entire config
+function ConfigSystem.GetConfig()
+    return CurrentConfig
+end
+
+-- Get specific value
+function ConfigSystem.Get(path)
+    local keys = {}
+    for key in string.gmatch(path, "[^.]+") do
+        table.insert(keys, key)
     end
     
-    local success, result = pcall(function()
-        return isfile(SaveConfig.ConfigFile)
-    end)
+    local value = CurrentConfig
+    for _, key in ipairs(keys) do
+        if type(value) == "table" then
+            value = value[key]
+        else
+            return nil
+        end
+    end
     
-    return success and result or false
+    return value
+end
+
+-- Set specific value
+function ConfigSystem.Set(path, value)
+    local keys = {}
+    for key in string.gmatch(path, "[^.]+") do
+        table.insert(keys, key)
+    end
+    
+    local target = CurrentConfig
+    for i = 1, #keys - 1 do
+        local key = keys[i]
+        if type(target[key]) ~= "table" then
+            target[key] = {}
+        end
+        target = target[key]
+    end
+    
+    target[keys[#keys]] = value
 end
 
 -- ============================================
--- GUI INTERACTION FUNCTIONS
+-- PRINT CONFIG STATUS
 -- ============================================
+function ConfigSystem.PrintStatus()
+    print("=== LYNX GUI CONFIG STATUS ===")
+    print("📦 Version:", ConfigSystem.Version)
+    print("📁 Folder:", CONFIG_FOLDER)
+    print("📄 File:", CONFIG_FILE)
+    print("✅ Config loaded:", isfile(CONFIG_FILE) and "YES" or "NO")
+    print("==============================")
+end
 
-function SaveConfig.CollectFromGUI(guiVars)
-    if type(guiVars) ~= "table" then
-        warn("[SaveConfig] guiVars is not table")
+-- ============================================
+-- RESET CONFIG
+-- ============================================
+function ConfigSystem.Reset()
+    print("🔄 [ConfigSystem] Resetting to default configuration...")
+    CurrentConfig = DeepCopy(DefaultConfig)
+    
+    local success, message = ConfigSystem.Save()
+    if success then
+        print("✅ [ConfigSystem] Configuration reset complete!")
+    end
+    
+    return success, message
+end
+
+-- ============================================
+-- DELETE CONFIG FILE
+-- ============================================
+function ConfigSystem.Delete()
+    if isfile(CONFIG_FILE) then
+        delfile(CONFIG_FILE)
+        print("🗑️ [ConfigSystem] Config file deleted!")
+        return true
+    else
+        print("⚠️ [ConfigSystem] No config file to delete")
         return false
     end
-    
-    print("[SaveConfig] 📥 Collecting...")
-    
-    local collected = 0
-    
-    -- Simple variables
-    local simpleVars = {
-        {"InstantFishingMode", "currentInstantMode"},
-        {"InstantFishingEnabled", "isInstantFishingEnabled"},
-        {"FishingDelay", "fishingDelayValue"},
-        {"CancelDelay", "cancelDelayValue"},
-        {"HideStatsFakeName", "currentFakeName"},
-        {"HideStatsFakeLevel", "currentFakeLevel"},
-        {"WebhookURL", "currentWebhookURL"},
-        {"WebhookDiscordID", "currentDiscordID"},
-        {"WebhookSelectedRarities", "selectedRarities"},
-    }
-    
-    for _, pair in ipairs(simpleVars) do
-        local configKey, varName = pair[1], pair[2]
-        local value = guiVars[varName]
-        if value ~= nil then
-            SaveConfig.Set(configKey, value)
-            print("  ✓", configKey)
-            collected = collected + 1
-        end
-    end
-    
-    -- HideStats enabled state
-    local hideStats = guiVars.HideStats
-    if hideStats and type(hideStats.IsEnabled) == "function" then
-        local ok, enabled = pcall(hideStats.IsEnabled)
-        if ok then
-            SaveConfig.Set("HideStatsEnabled", enabled)
-            print("  ✓ HideStatsEnabled")
-            collected = collected + 1
-        end
-    end
-    
-    print("[SaveConfig] ✅ Collected", collected, "settings")
-    return true
-end
-
-function SaveConfig.ApplyToGUI(guiVars)
-    if type(guiVars) ~= "table" then
-        warn("[SaveConfig] guiVars is not table")
-        return false
-    end
-    
-    print("[SaveConfig] 🎨 Applying...")
-    
-    local config = SaveConfig.GetAll()
-    local applied = 0
-    
-    -- Apply simple variables
-    local simpleVars = {
-        {"currentFakeName", "HideStatsFakeName"},
-        {"currentFakeLevel", "HideStatsFakeLevel"},
-        {"currentInstantMode", "InstantFishingMode"},
-        {"isInstantFishingEnabled", "InstantFishingEnabled"},
-        {"fishingDelayValue", "FishingDelay"},
-        {"cancelDelayValue", "CancelDelay"},
-        {"currentWebhookURL", "WebhookURL"},
-        {"currentDiscordID", "WebhookDiscordID"},
-        {"selectedRarities", "WebhookSelectedRarities"},
-    }
-    
-    for _, pair in ipairs(simpleVars) do
-        local varName, configKey = pair[1], pair[2]
-        if config[configKey] ~= nil and guiVars[varName] ~= nil then
-            guiVars[varName] = config[configKey]
-            print("  ✓", varName)
-            applied = applied + 1
-        end
-    end
-    
-    -- Update instant modules
-    local instant = guiVars.instant
-    if instant and type(instant) == "table" and instant.Settings then
-        instant.Settings.MaxWaitTime = config.FishingDelay or 1.30
-        instant.Settings.CancelDelay = config.CancelDelay or 0.19
-        print("  ✓ instant")
-        applied = applied + 1
-    end
-    
-    local instant2 = guiVars.instant2
-    if instant2 and type(instant2) == "table" and instant2.Settings then
-        instant2.Settings.MaxWaitTime = config.FishingDelay or 1.30
-        instant2.Settings.CancelDelay = config.CancelDelay or 0.19
-        print("  ✓ instant2")
-        applied = applied + 1
-    end
-    
-    -- Update TextBoxes
-    local fakeNameBox = guiVars.fakeNameTextBox
-    if fakeNameBox and typeof(fakeNameBox) == "Instance" then
-        pcall(function()
-            fakeNameBox.Text = config.HideStatsFakeName or "Guest"
-            print("  ✓ fakeNameTextBox")
-            applied = applied + 1
-        end)
-    end
-    
-    local fakeLevelBox = guiVars.fakeLevelTextBox
-    if fakeLevelBox and typeof(fakeLevelBox) == "Instance" then
-        pcall(function()
-            fakeLevelBox.Text = config.HideStatsFakeLevel or "1"
-            print("  ✓ fakeLevelTextBox")
-            applied = applied + 1
-        end)
-    end
-    
-    -- Update HideStats
-    local hideStats = guiVars.HideStats
-    if hideStats and guiVars.hideStatsLoaded then
-        if type(hideStats.SetFakeName) == "function" then
-            pcall(function()
-                hideStats.SetFakeName(config.HideStatsFakeName or "Guest")
-                print("  ✓ HideStats.SetFakeName")
-                applied = applied + 1
-            end)
-        end
-        
-        if type(hideStats.SetFakeLevel) == "function" then
-            pcall(function()
-                hideStats.SetFakeLevel(config.HideStatsFakeLevel or "1")
-                print("  ✓ HideStats.SetFakeLevel")
-                applied = applied + 1
-            end)
-        end
-        
-        if config.HideStatsEnabled and type(hideStats.Enable) == "function" then
-            pcall(function()
-                hideStats.Enable()
-                print("  ✓ HideStats.Enable")
-                applied = applied + 1
-            end)
-        end
-    end
-    
-    -- Update Webhook TextBoxes
-    local webhookBox = guiVars.webhookTextBox
-    if webhookBox and typeof(webhookBox) == "Instance" then
-        pcall(function()
-            webhookBox.Text = config.WebhookURL or ""
-            print("  ✓ webhookTextBox")
-            applied = applied + 1
-        end)
-    end
-    
-    local discordIDBox = guiVars.discordIDTextBox
-    if discordIDBox and typeof(discordIDBox) == "Instance" then
-        pcall(function()
-            discordIDBox.Text = config.WebhookDiscordID or ""
-            print("  ✓ discordIDTextBox")
-            applied = applied + 1
-        end)
-    end
-    
-    -- Update Checkboxes
-    local checkboxes = guiVars.checkboxes
-    if checkboxes and type(checkboxes) == "table" and config.WebhookSelectedRarities then
-        for _, rarity in ipairs(config.WebhookSelectedRarities) do
-            local checkbox = checkboxes[rarity]
-            if checkbox and type(checkbox.setSelected) == "function" then
-                pcall(function()
-                    checkbox.setSelected(true)
-                    print("  ✓ Checkbox", rarity)
-                    applied = applied + 1
-                end)
-            end
-        end
-    end
-    
-    print("[SaveConfig] ✅ Applied", applied, "settings")
-    return true
 end
 
 -- ============================================
--- INITIALIZE
+-- INITIALIZATION
 -- ============================================
-SaveConfig.Initialize()
-print("[SaveConfig] ✅ Module ready")
+print("🚀 [ConfigSystem] Module loaded!")
+ConfigSystem.Load()
 
-return SaveConfig
+return ConfigSystem
