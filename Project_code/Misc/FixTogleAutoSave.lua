@@ -1701,7 +1701,7 @@ local function SaveCurrentConfig()
 end
 
 -- ==========================================
--- AUTO FISHING SECTION
+-- AUTO FISHING SECTION (FIXED)
 -- ==========================================
 local catAutoFishing = makeCategory(mainPage, "Auto Fishing", "🎣")
 
@@ -1799,17 +1799,29 @@ ToggleReferences.InstantFishing = makeToggle(catAutoFishing, "Enable Instant Fis
     end
 end)
 
--- ⭐ Restore toggle state after creation
+-- ⭐ Restore toggle state after creation (SAMA SEPERTI BLATANT)
 task.spawn(function()
-    task.wait(0.3)
+    task.wait(0.5)  -- ⭐ PENTING: Ubah dari 0.3 ke 0.5
     if savedInstantEnabled and ToggleReferences.InstantFishing then
         ToggleReferences.InstantFishing.SetState(true)
         isInstantFishingEnabled = true
         print("✅ Instant Fishing toggle restored to ON")
+        
+        -- ⭐ PENTING: Pastikan module yang benar di-start
+        local instant = GetModule("instant")
+        local instant2 = GetModule("instant2")
+        
+        if currentInstantMode == "Fast" and instant then
+            instant.Start()
+            print("✅ Fast mode auto-started on load")
+        elseif currentInstantMode == "Perfect" and instant2 then
+            instant2.Start()
+            print("✅ Perfect mode auto-started on load")
+        end
     end
 end)
 
--- Fishing Delay Input
+-- Fishing Delay Input (⭐ Gunakan savedFishingDelay sebagai default)
 makeInput(catAutoFishing, "Fishing Delay", savedFishingDelay, function(v)
     fishingDelayValue = v
     SetConfigValue("InstantFishing.FishingDelay", v)
@@ -1828,7 +1840,7 @@ makeInput(catAutoFishing, "Fishing Delay", savedFishingDelay, function(v)
     end
 end)
 
--- Cancel Delay Input
+-- Cancel Delay Input (⭐ Gunakan savedCancelDelay sebagai default)
 makeInput(catAutoFishing, "Cancel Delay", savedCancelDelay, function(v)
     cancelDelayValue = v
     SetConfigValue("InstantFishing.CancelDelay", v)
@@ -1846,7 +1858,6 @@ makeInput(catAutoFishing, "Cancel Delay", savedCancelDelay, function(v)
         print("✅ Perfect mode Cancel Delay updated to:", v)
     end
 end)
-
 -- ============================================
 -- MAIN PAGE - BLATANT MODES
 -- ============================================
