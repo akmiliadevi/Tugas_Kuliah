@@ -1746,9 +1746,6 @@ if AutoFavorite then
         b.MouseButton1Click:Connect(callback)
     end
     
-    makeQuickBtn("✓ All", colors.success, function() tierSys.SelectAll() end)
-    makeQuickBtn("✗ Clear", colors.danger, function() tierSys.ClearAll() varSys.ClearAll() end)
-    
     task.spawn(function()
         task.wait(0.5)
         tierSys.SelectSpecific(GetConfigValue("AutoFavorite.EnabledTiers", {}))
