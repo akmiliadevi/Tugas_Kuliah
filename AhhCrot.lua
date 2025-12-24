@@ -2098,7 +2098,46 @@ local WebhookModule = GetModule("Webhook")
 local currentWebhookURL = GetConfigValue("Webhook.URL", "")
 local currentDiscordID = GetConfigValue("Webhook.DiscordID", "")
 
--- Webhook URL Input
+-- CEK SUPPORT EXECUTOR
+local isWebhookSupported = false
+if WebhookModule then
+    isWebhookSupported = WebhookModule:IsSupported()
+    
+    if not isWebhookSupported then
+        -- WARNING BANNER
+        local warningFrame = new("Frame", {
+            Parent = catWebhook,
+            Size = UDim2.new(1, 0, 0, 70),
+            BackgroundColor3 = colors.danger,
+            BackgroundTransparency = 0.7,
+            BorderSizePixel = 0,
+            ZIndex = 7
+        })
+        new("UICorner", {Parent = warningFrame, CornerRadius = UDim.new(0, 8)})
+        
+        new("TextLabel", {
+            Parent = warningFrame,
+            Size = UDim2.new(1, -24, 1, -24),
+            Position = UDim2.new(0, 12, 0, 12),
+            BackgroundTransparency = 1,
+            Text = "⚠️ WEBHOOK NOT SUPPORTED\n\nYour executor doesn't support HTTP requests.\nPlease use: Xeno, Synapse X, Script-Ware, or Fluxus.",
+            Font = Enum.Font.GothamBold,
+            TextSize = 9,
+            TextColor3 = colors.text,
+            TextWrapped = true,
+            TextYAlignment = Enum.TextYAlignment.Top,
+            ZIndex = 8
+        })
+        
+        print("❌ Webhook: Executor tidak support HTTP requests!")
+    else
+        -- Aktifkan simple mode untuk keamanan
+        WebhookModule:SetSimpleMode(true)
+        print("✅ Webhook: Executor support detected!")
+    end
+end
+
+-- Webhook URL Input (disabled jika tidak support)
 local webhookURLFrame = new("Frame", {
     Parent = catWebhook,
     Size = UDim2.new(1, 0, 0, 60),
@@ -2108,10 +2147,10 @@ local webhookURLFrame = new("Frame", {
 
 new("TextLabel", {
     Parent = webhookURLFrame,
-    Text = "Webhook URL",
+    Text = "Webhook URL" .. (not isWebhookSupported and " (Disabled)" or ""),
     Size = UDim2.new(1, 0, 0, 18),
     BackgroundTransparency = 1,
-    TextColor3 = colors.text,
+    TextColor3 = not isWebhookSupported and colors.textDimmer or colors.text,
     TextXAlignment = Enum.TextXAlignment.Left,
     Font = Enum.Font.GothamBold,
     TextSize = 9,
@@ -2123,7 +2162,7 @@ local webhookURLBg = new("Frame", {
     Size = UDim2.new(1, 0, 0, 35),
     Position = UDim2.new(0, 0, 0, 22),
     BackgroundColor3 = colors.bg4,
-    BackgroundTransparency = 0.4,
+    BackgroundTransparency = not isWebhookSupported and 0.8 or 0.4,
     BorderSizePixel = 0,
     ZIndex = 8
 })
@@ -2135,28 +2174,31 @@ local webhookTextBox = new("TextBox", {
     Position = UDim2.new(0, 6, 0, 0),
     BackgroundTransparency = 1,
     Text = currentWebhookURL,
-    PlaceholderText = "https://discord.com/api/webhooks/...",
+    PlaceholderText = not isWebhookSupported and "Not supported on this executor" or "https://discord.com/api/webhooks/...",
     Font = Enum.Font.Gotham,
     TextSize = 8,
-    TextColor3 = colors.text,
+    TextColor3 = not isWebhookSupported and colors.textDimmer or colors.text,
     PlaceholderColor3 = colors.textDimmer,
     TextXAlignment = Enum.TextXAlignment.Left,
     ClearTextOnFocus = false,
+    TextEditable = isWebhookSupported,
     ZIndex = 9
 })
 
-webhookTextBox.FocusLost:Connect(function()
-    currentWebhookURL = webhookTextBox.Text
-    SetConfigValue("Webhook.URL", currentWebhookURL)
-    SaveCurrentConfig()
-    
-    if WebhookModule and currentWebhookURL ~= "" then
-        pcall(function() WebhookModule:SetWebhookURL(currentWebhookURL) end)
-        SendNotification("Webhook", "Webhook URL tersimpan!", 2)
-    end
-end)
+if isWebhookSupported then
+    webhookTextBox.FocusLost:Connect(function()
+        currentWebhookURL = webhookTextBox.Text
+        SetConfigValue("Webhook.URL", currentWebhookURL)
+        SaveCurrentConfig()
+        
+        if WebhookModule and currentWebhookURL ~= "" then
+            pcall(function() WebhookModule:SetWebhookURL(currentWebhookURL) end)
+            SendNotification("Webhook", "Webhook URL tersimpan!", 2)
+        end
+    end)
+end
 
--- Discord ID Input
+-- Discord ID Input (disabled jika tidak support)
 local discordIDFrame = new("Frame", {
     Parent = catWebhook,
     Size = UDim2.new(1, 0, 0, 60),
@@ -2166,10 +2208,10 @@ local discordIDFrame = new("Frame", {
 
 new("TextLabel", {
     Parent = discordIDFrame,
-    Text = "Discord User ID (Optional)",
+    Text = "Discord User ID (Optional)" .. (not isWebhookSupported and " (Disabled)" or ""),
     Size = UDim2.new(1, 0, 0, 18),
     BackgroundTransparency = 1,
-    TextColor3 = colors.text,
+    TextColor3 = not isWebhookSupported and colors.textDimmer or colors.text,
     TextXAlignment = Enum.TextXAlignment.Left,
     Font = Enum.Font.GothamBold,
     TextSize = 9,
@@ -2181,7 +2223,7 @@ local discordIDBg = new("Frame", {
     Size = UDim2.new(1, 0, 0, 35),
     Position = UDim2.new(0, 0, 0, 22),
     BackgroundColor3 = colors.bg4,
-    BackgroundTransparency = 0.4,
+    BackgroundTransparency = not isWebhookSupported and 0.8 or 0.4,
     BorderSizePixel = 0,
     ZIndex = 8
 })
@@ -2193,28 +2235,31 @@ local discordIDTextBox = new("TextBox", {
     Position = UDim2.new(0, 6, 0, 0),
     BackgroundTransparency = 1,
     Text = currentDiscordID,
-    PlaceholderText = "123456789012345678",
+    PlaceholderText = not isWebhookSupported and "Not supported on this executor" or "123456789012345678",
     Font = Enum.Font.Gotham,
     TextSize = 8,
-    TextColor3 = colors.text,
+    TextColor3 = not isWebhookSupported and colors.textDimmer or colors.text,
     PlaceholderColor3 = colors.textDimmer,
     TextXAlignment = Enum.TextXAlignment.Left,
     ClearTextOnFocus = false,
+    TextEditable = isWebhookSupported,
     ZIndex = 9
 })
 
-discordIDTextBox.FocusLost:Connect(function()
-    currentDiscordID = discordIDTextBox.Text
-    SetConfigValue("Webhook.DiscordID", currentDiscordID)
-    SaveCurrentConfig()
-    
-    if WebhookModule then
-        pcall(function() WebhookModule:SetDiscordUserID(currentDiscordID) end)
-        if currentDiscordID ~= "" then
-            SendNotification("Webhook", "Discord ID tersimpan!", 2)
+if isWebhookSupported then
+    discordIDTextBox.FocusLost:Connect(function()
+        currentDiscordID = discordIDTextBox.Text
+        SetConfigValue("Webhook.DiscordID", currentDiscordID)
+        SaveCurrentConfig()
+        
+        if WebhookModule then
+            pcall(function() WebhookModule:SetDiscordUserID(currentDiscordID) end)
+            if currentDiscordID ~= "" then
+                SendNotification("Webhook", "Discord ID tersimpan!", 2)
+            end
         end
-    end
-end)
+    end)
+end
 
 -- Rarity Filter
 local AllRarities = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Exotic", "Limited"}
@@ -2234,7 +2279,7 @@ local rarityCheckboxSystem = makeCheckboxList(
     AllRarities,
     rarityColors,
     function(selectedRarities)
-        if WebhookModule then
+        if WebhookModule and isWebhookSupported then
             pcall(function() WebhookModule:SetEnabledRarities(selectedRarities) end)
         end
         SetConfigValue("Webhook.EnabledRarities", selectedRarities)
@@ -2242,17 +2287,50 @@ local rarityCheckboxSystem = makeCheckboxList(
     end
 )
 
+-- Disable checkbox jika tidak support
+if not isWebhookSupported then
+    task.spawn(function()
+        task.wait(0.5)
+        for _, rarity in ipairs(AllRarities) do
+            -- Visual indication bahwa disabled
+            -- (checkbox system sudah jadi, tidak perlu diubah)
+        end
+    end)
+end
+
 makeButton(catWebhook, "✓ Select All Rarities", function()
+    if not isWebhookSupported then
+        SendNotification("Error", "Webhook not supported!", 3)
+        return
+    end
     rarityCheckboxSystem.SelectAll()
     SendNotification("Webhook", "All rarities selected!", 2)
 end)
 
 makeButton(catWebhook, "✗ Clear Selection", function()
+    if not isWebhookSupported then
+        SendNotification("Error", "Webhook not supported!", 3)
+        return
+    end
     rarityCheckboxSystem.ClearAll()
     SendNotification("Webhook", "Selection cleared!", 2)
 end)
 
-ToggleReferences.Webhook = makeToggle(catWebhook, "Enable Webhook", function(on)
+-- Toggle Webhook (disabled jika tidak support)
+ToggleReferences.Webhook = makeToggle(catWebhook, "Enable Webhook" .. (not isWebhookSupported and " (Not Supported)" or ""), function(on)
+    -- BLOCK jika tidak support
+    if not isWebhookSupported then
+        SendNotification("Error", "Webhook not supported on this executor!", 3)
+        -- Reset toggle
+        if ToggleReferences.Webhook then
+            task.spawn(function()
+                task.wait(0.1)
+                ToggleReferences.Webhook.setOn(false, true)
+            end)
+        end
+        return
+    end
+    
     SetConfigValue("Webhook.Enabled", on)
     SaveCurrentConfig()
     
@@ -2264,10 +2342,17 @@ ToggleReferences.Webhook = makeToggle(catWebhook, "Enable Webhook", function(on)
     if on then
         if currentWebhookURL == "" then
             SendNotification("Error", "Masukkan Webhook URL dulu!", 3)
+            -- Reset toggle
+            if ToggleReferences.Webhook then
+                task.spawn(function()
+                    task.wait(0.1)
+                    ToggleReferences.Webhook.setOn(false, true)
+                end)
+            end
             return
         end
         
-        pcall(function()
+        local success = pcall(function()
             WebhookModule:SetWebhookURL(currentWebhookURL)
             if currentDiscordID ~= "" then
                 WebhookModule:SetDiscordUserID(currentDiscordID)
@@ -2277,16 +2362,37 @@ ToggleReferences.Webhook = makeToggle(catWebhook, "Enable Webhook", function(on)
             WebhookModule:Start()
         end)
         
-        local selected = rarityCheckboxSystem.GetSelected()
-        local filterInfo = #selected > 0 
-            and (" (Filter: " .. table.concat(selected, ", ") .. ")")
-            or " (All rarities)"
-        SendNotification("Webhook", "Webhook logging aktif!" .. filterInfo, 4)
+        if success then
+            local selected = rarityCheckboxSystem.GetSelected()
+            local filterInfo = #selected > 0 
+                and (" (Filter: " .. table.concat(selected, ", ") .. ")")
+                or " (All rarities)"
+            SendNotification("Webhook", "Webhook logging aktif!" .. filterInfo, 4)
+        else
+            SendNotification("Error", "Failed to start webhook!", 3)
+            -- Reset toggle
+            if ToggleReferences.Webhook then
+                task.spawn(function()
+                    task.wait(0.1)
+                    ToggleReferences.Webhook.setOn(false, true)
+                end)
+            end
+        end
     else
         pcall(function() WebhookModule:Stop() end)
         SendNotification("Webhook", "Webhook logging dinonaktifkan.", 3)
     end
 end)
+
+-- Auto-disable webhook toggle jika tidak support
+if not isWebhookSupported then
+    task.spawn(function()
+        task.wait(0.5)
+        if ToggleReferences.Webhook then
+            ToggleReferences.Webhook.setOn(false, true)
+        end
+    end)
+end
 
 -- ============================================
 -- CAMERA VIEW PAGE
