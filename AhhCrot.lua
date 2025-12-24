@@ -1290,6 +1290,59 @@ local function makeCheckboxList(parent, items, colorMap, onSelectionChange)
     }
 end
 
+-- Simple Checkbox Dropdown
+local function makeCheckboxDropdown(parent, title, items, colorMap, onChange)
+    local selected = {}
+    local refs = {}
+    
+    local frame = new("Frame", {Parent = parent, Size = UDim2.new(1, 0, 0, 40), BackgroundColor3 = colors.bg4, BackgroundTransparency = 0.5, BorderSizePixel = 0, AutomaticSize = Enum.AutomaticSize.Y, ZIndex = 7})
+    new("UICorner", {Parent = frame, CornerRadius = UDim.new(0, 6)})
+    
+    local header = new("TextButton", {Parent = frame, Size = UDim2.new(1, -12, 0, 36), Position = UDim2.new(0, 6, 0, 2), BackgroundTransparency = 1, Text = "", ZIndex = 8})
+    new("TextLabel", {Parent = header, Text = title, Size = UDim2.new(1, -30, 1, 0), Position = UDim2.new(0, 8, 0, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 9, TextColor3 = colors.text, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 9})
+    
+    local status = new("TextLabel", {Parent = header, Text = "0", Size = UDim2.new(0, 24, 1, 0), Position = UDim2.new(1, -24, 0, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 10, TextColor3 = colors.primary, ZIndex = 9})
+    
+    local list = new("ScrollingFrame", {Parent = frame, Size = UDim2.new(1, -12, 0, 0), Position = UDim2.new(0, 6, 0, 42), BackgroundTransparency = 1, Visible = false, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(0, 0, 0, 0), ScrollBarThickness = 2, ScrollBarImageColor3 = colors.primary, BorderSizePixel = 0, ZIndex = 10})
+    new("UIListLayout", {Parent = list, Padding = UDim.new(0, 3)})
+    
+    local open = false
+    header.MouseButton1Click:Connect(function()
+        open = not open
+        list.Visible = open
+        if open then list.Size = UDim2.new(1, -12, 0, math.min(#items * 24 + 6, 180)) end
+    end)
+    
+    for _, name in ipairs(items) do
+        local row = new("TextButton", {Parent = list, Size = UDim2.new(1, 0, 0, 22), BackgroundColor3 = colors.bg4, BackgroundTransparency = 0.7, BorderSizePixel = 0, Text = "", ZIndex = 11})
+        new("UICorner", {Parent = row, CornerRadius = UDim.new(0, 4)})
+        
+        local check = new("TextLabel", {Parent = row, Size = UDim2.new(0, 16, 0, 16), Position = UDim2.new(0, 4, 0, 3), BackgroundColor3 = colors.bg1, BackgroundTransparency = 0.5, BorderSizePixel = 0, Text = "", Font = Enum.Font.GothamBold, TextSize = 12, TextColor3 = colors.text, ZIndex = 12})
+        new("UICorner", {Parent = check, CornerRadius = UDim.new(0, 3)})
+        if colorMap and colorMap[name] then new("UIStroke", {Parent = check, Color = colorMap[name], Thickness = 2, Transparency = 0.7}) end
+        
+        new("TextLabel", {Parent = row, Size = UDim2.new(1, -26, 1, 0), Position = UDim2.new(0, 24, 0, 0), BackgroundTransparency = 1, Text = name, Font = Enum.Font.GothamBold, TextSize = 8, TextColor3 = colors.text, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 12})
+        
+        local on = false
+        row.MouseButton1Click:Connect(function()
+            on = not on
+            check.Text = on and "✓" or ""
+            if on then table.insert(selected, name) else table.remove(selected, table.find(selected, name)) end
+            status.Text = tostring(#selected)
+            pcall(onChange, selected)
+        end)
+        
+        refs[name] = {set = function(v) if on ~= v then row.MouseButton1Click:Fire() end end, get = function() return on end}
+    end
+    
+    return {
+        GetSelected = function() return selected end,
+        SelectAll = function() for _, r in pairs(refs) do if not r.get() then r.set(true) end end end,
+        ClearAll = function() for _, r in pairs(refs) do if r.get() then r.set(false) end end end,
+        SelectSpecific = function(list) for n, r in pairs(refs) do r.set(table.find(list, n) ~= nil) end end
+    }
+end
+
 -- ============================================
 -- CONFIG SYSTEM
 -- ============================================
@@ -1672,50 +1725,34 @@ ToggleReferences.GoodPerfectionStable = makeToggle(catSupport, "Good/Perfection 
     end
 end)
 
--- AUTO FAVORITE
+-- ============================================
+-- AUTO FAVORITE (MINIMAL)
+-- ============================================
 local catAutoFav = makeCategory(mainPage, "Auto Favorite", "⭐")
 local AutoFavorite = GetModule("AutoFavorite")
 
 if AutoFavorite then
-    local tierCheckboxSystem = makeCheckboxList(
-        catAutoFav,
-        AutoFavorite.GetAllTiers(),
-        {
-            Common = Color3.fromRGB(150, 150, 150),
-            Uncommon = Color3.fromRGB(76, 175, 80),
-            Rare = Color3.fromRGB(33, 150, 243),
-            Epic = Color3.fromRGB(156, 39, 176),
-            Legendary = Color3.fromRGB(255, 152, 0),
-            Mythic = Color3.fromRGB(255, 0, 0),
-            SECRET = Color3.fromRGB(0, 255, 170)
-        },
-        function(selectedTiers)
-            AutoFavorite.ClearTiers()
-            AutoFavorite.EnableTiers(selectedTiers)
-            SetConfigValue("AutoFavorite.EnabledTiers", selectedTiers)
-            SaveCurrentConfig()
-        end
-    )
+    local tierSys = makeCheckboxDropdown(catAutoFav, "Tier Filter", AutoFavorite.GetAllTiers(), {Common = Color3.fromRGB(150, 150, 150), Uncommon = Color3.fromRGB(76, 175, 80), Rare = Color3.fromRGB(33, 150, 243), Epic = Color3.fromRGB(156, 39, 176), Legendary = Color3.fromRGB(255, 152, 0), Mythic = Color3.fromRGB(255, 0, 0), SECRET = Color3.fromRGB(0, 255, 170)}, function(sel) AutoFavorite.ClearTiers() AutoFavorite.EnableTiers(sel) SetConfigValue("AutoFavorite.EnabledTiers", sel) SaveCurrentConfig() end)
     
-    local variantCheckboxSystem = makeCheckboxList(
-        catAutoFav,
-        AutoFavorite.GetAllVariants(),
-        nil,
-        function(selectedVariants)
-            AutoFavorite.ClearVariants()
-            AutoFavorite.EnableVariants(selectedVariants)
-            SetConfigValue("AutoFavorite.EnabledVariants", selectedVariants)
-            SaveCurrentConfig()
-        end
-    )
+    local varSys = makeCheckboxDropdown(catAutoFav, "Variant Filter", AutoFavorite.GetAllVariants(), nil, function(sel) AutoFavorite.ClearVariants() AutoFavorite.EnableVariants(sel) SetConfigValue("AutoFavorite.EnabledVariants", sel) SaveCurrentConfig() end)
     
-    makeButton(catAutoFav, "✓ Select All Tiers", function()
-        tierCheckboxSystem.SelectAll()
-    end)
+    local btnRow = new("Frame", {Parent = catAutoFav, Size = UDim2.new(1, 0, 0, 28), BackgroundTransparency = 1, ZIndex = 7})
+    new("UIListLayout", {Parent = btnRow, FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6)})
     
-    makeButton(catAutoFav, "✗ Clear All", function()
-        tierCheckboxSystem.ClearAll()
-        variantCheckboxSystem.ClearAll()
+    local function makeQuickBtn(text, color, callback)
+        local f = new("Frame", {Parent = btnRow, Size = UDim2.new(0.48, 0, 1, 0), BackgroundColor3 = color, BackgroundTransparency = 0.3, BorderSizePixel = 0, ZIndex = 8})
+        new("UICorner", {Parent = f, CornerRadius = UDim.new(0, 6)})
+        local b = new("TextButton", {Parent = f, Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = text, Font = Enum.Font.GothamBold, TextSize = 8, TextColor3 = colors.text, ZIndex = 9})
+        b.MouseButton1Click:Connect(callback)
+    end
+    
+    makeQuickBtn("✓ All", colors.success, function() tierSys.SelectAll() end)
+    makeQuickBtn("✗ Clear", colors.danger, function() tierSys.ClearAll() varSys.ClearAll() end)
+    
+    task.spawn(function()
+        task.wait(0.5)
+        tierSys.SelectSpecific(GetConfigValue("AutoFavorite.EnabledTiers", {}))
+        varSys.SelectSpecific(GetConfigValue("AutoFavorite.EnabledVariants", {}))
     end)
 end
 
