@@ -1,7 +1,3 @@
--- Ping & FPS Monitor Panel
--- Script untuk monitoring ping dan FPS real-time
--- Horizontal layout seperti game fishing
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
@@ -9,158 +5,105 @@ local Stats = game:GetService("Stats")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Module untuk dipanggil dari GUI utama
 local MonitorModule = {}
 
--- Variables untuk FPS calculation
 local lastFrameTime = tick()
 local fpsHistory = {}
 local maxFPSHistory = 20
 local updateConnection
 local pingUpdateConnection
 
--- Fungsi untuk membuat GUI
 local function createMonitorGUI()
-    -- Main ScreenGui
+
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "PingFPSMonitor"
+    screenGui.Name = "LynxPanelMonitor"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     screenGui.DisplayOrder = 10
     
-    -- Container Frame (Horizontal)
     local container = Instance.new("Frame")
     container.Name = "Container"
-    container.Size = UDim2.new(0, 470, 0, 50)
-    container.Position = UDim2.new(0, 100, 0, 120) -- Top left area
-    container.BackgroundTransparency = 1
+    container.Size = UDim2.new(0, 250, 0, 100)
+    container.Position = UDim2.new(0, 100, 0, 300)
+    container.BackgroundColor3 = Color3.fromRGB(25, 30, 40)
+    container.BorderSizePixel = 0
     container.Parent = screenGui
     
-    -- Ping Panel
-    local pingPanel = Instance.new("Frame")
-    pingPanel.Name = "PingPanel"
-    pingPanel.Size = UDim2.new(0, 225, 1, 0)
-    pingPanel.Position = UDim2.new(0, 0, 0, 0)
-    pingPanel.BackgroundColor3 = Color3.fromRGB(40, 45, 55)
-    pingPanel.BorderSizePixel = 0
-    pingPanel.Parent = container
+    local containerCorner = Instance.new("UICorner")
+    containerCorner.CornerRadius = UDim.new(0, 12)
+    containerCorner.Parent = container
     
-    local pingCorner = Instance.new("UICorner")
-    pingCorner.CornerRadius = UDim.new(0, 8)
-    pingCorner.Parent = pingPanel
+    local containerStroke = Instance.new("UIStroke")
+    containerStroke.Color = Color3.fromRGB(60, 70, 90)
+    containerStroke.Thickness = 2
+    containerStroke.Parent = container
     
-    -- Ping Icon Container
-    local pingIconFrame = Instance.new("Frame")
-    pingIconFrame.Name = "IconFrame"
-    pingIconFrame.Size = UDim2.new(0, 50, 1, 0)
-    pingIconFrame.BackgroundTransparency = 1
-    pingIconFrame.Parent = pingPanel
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Size = UDim2.new(1, 0, 0, 40)
+    header.BackgroundTransparency = 1
+    header.Parent = container
     
-    -- Ping Icon (ImageLabel untuk custom icon)
-    local pingIcon = Instance.new("ImageLabel")
-    pingIcon.Name = "PingIcon"
-    pingIcon.Size = UDim2.new(0, 32, 0, 32)
-    pingIcon.Position = UDim2.new(0.5, -16, 0.5, -16)
-    pingIcon.BackgroundTransparency = 1
-    pingIcon.Image = "rbxassetid://0" -- Placeholder, bisa diganti
-    pingIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
-    pingIcon.Parent = pingIconFrame
+    local logoIcon = Instance.new("ImageLabel")
+    logoIcon.Name = "LogoIcon"
+    logoIcon.Size = UDim2.new(0, 30, 0, 30)
+    logoIcon.Position = UDim2.new(0, 10, 0, 5)
+    logoIcon.BackgroundTransparency = 1
+    logoIcon.Image = "rbxassetid://118176705805619" -- Logo Lynx
+    logoIcon.ScaleType = Enum.ScaleType.Fit
+    logoIcon.Parent = header
     
-    -- Ping Content
-    local pingContent = Instance.new("Frame")
-    pingContent.Name = "Content"
-    pingContent.Size = UDim2.new(1, -55, 1, 0)
-    pingContent.Position = UDim2.new(0, 55, 0, 0)
-    pingContent.BackgroundTransparency = 1
-    pingContent.Parent = pingPanel
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "TitleLabel"
+    titleLabel.Size = UDim2.new(1, -50, 1, 0)
+    titleLabel.Position = UDim2.new(0, 45, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "LYNX PANEL"
+    titleLabel.TextColor3 = Color3.fromRGB(100, 180, 255)
+    titleLabel.TextSize = 16
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = header
+    
+    local separator = Instance.new("Frame")
+    separator.Name = "Separator"
+    separator.Size = UDim2.new(1, -20, 0, 1)
+    separator.Position = UDim2.new(0, 10, 0, 40)
+    separator.BackgroundColor3 = Color3.fromRGB(60, 70, 90)
+    separator.BorderSizePixel = 0
+    separator.Parent = container
+    
+    local content = Instance.new("Frame")
+    content.Name = "Content"
+    content.Size = UDim2.new(1, -20, 1, -50)
+    content.Position = UDim2.new(0, 10, 0, 45)
+    content.BackgroundTransparency = 1
+    content.Parent = container
     
     local pingLabel = Instance.new("TextLabel")
-    pingLabel.Name = "Label"
-    pingLabel.Size = UDim2.new(1, -10, 0, 18)
-    pingLabel.Position = UDim2.new(0, 0, 0, 6)
+    pingLabel.Name = "PingLabel"
+    pingLabel.Size = UDim2.new(1, 0, 0, 20)
+    pingLabel.Position = UDim2.new(0, 0, 0, 5)
     pingLabel.BackgroundTransparency = 1
-    pingLabel.Text = "NetworkPing"
-    pingLabel.TextColor3 = Color3.fromRGB(200, 200, 210)
-    pingLabel.TextSize = 13
+    pingLabel.Text = "Ping: 0 ms"
+    pingLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+    pingLabel.TextSize = 15
     pingLabel.Font = Enum.Font.GothamMedium
     pingLabel.TextXAlignment = Enum.TextXAlignment.Left
-    pingLabel.Parent = pingContent
-    
-    local pingValue = Instance.new("TextLabel")
-    pingValue.Name = "Value"
-    pingValue.Size = UDim2.new(1, -10, 0, 22)
-    pingValue.Position = UDim2.new(0, 0, 0, 22)
-    pingValue.BackgroundTransparency = 1
-    pingValue.Text = "0 ms"
-    pingValue.TextColor3 = Color3.fromRGB(100, 255, 100)
-    pingValue.TextSize = 18
-    pingValue.Font = Enum.Font.GothamBold
-    pingValue.TextXAlignment = Enum.TextXAlignment.Left
-    pingValue.Parent = pingContent
-    
-    -- FPS Panel
-    local fpsPanel = Instance.new("Frame")
-    fpsPanel.Name = "FPSPanel"
-    fpsPanel.Size = UDim2.new(0, 225, 1, 0)
-    fpsPanel.Position = UDim2.new(0, 235, 0, 0)
-    fpsPanel.BackgroundColor3 = Color3.fromRGB(40, 45, 55)
-    fpsPanel.BorderSizePixel = 0
-    fpsPanel.Parent = container
-    
-    local fpsCorner = Instance.new("UICorner")
-    fpsCorner.CornerRadius = UDim.new(0, 8)
-    fpsCorner.Parent = fpsPanel
-    
-    -- FPS Icon Container
-    local fpsIconFrame = Instance.new("Frame")
-    fpsIconFrame.Name = "IconFrame"
-    fpsIconFrame.Size = UDim2.new(0, 50, 1, 0)
-    fpsIconFrame.BackgroundTransparency = 1
-    fpsIconFrame.Parent = fpsPanel
-    
-    -- FPS Icon (ImageLabel untuk custom icon)
-    local fpsIcon = Instance.new("ImageLabel")
-    fpsIcon.Name = "FPSIcon"
-    fpsIcon.Size = UDim2.new(0, 32, 0, 32)
-    fpsIcon.Position = UDim2.new(0.5, -16, 0.5, -16)
-    fpsIcon.BackgroundTransparency = 1
-    fpsIcon.Image = "rbxassetid://0" -- Placeholder, bisa diganti
-    fpsIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
-    fpsIcon.Parent = fpsIconFrame
-    
-    -- FPS Content
-    local fpsContent = Instance.new("Frame")
-    fpsContent.Name = "Content"
-    fpsContent.Size = UDim2.new(1, -55, 1, 0)
-    fpsContent.Position = UDim2.new(0, 55, 0, 0)
-    fpsContent.BackgroundTransparency = 1
-    fpsContent.Parent = fpsPanel
-    
+    pingLabel.Parent = content
+
     local fpsLabel = Instance.new("TextLabel")
-    fpsLabel.Name = "Label"
-    fpsLabel.Size = UDim2.new(1, -10, 0, 18)
-    fpsLabel.Position = UDim2.new(0, 0, 0, 6)
+    fpsLabel.Name = "FPSLabel"
+    fpsLabel.Size = UDim2.new(1, 0, 0, 20)
+    fpsLabel.Position = UDim2.new(0, 0, 0, 30)
     fpsLabel.BackgroundTransparency = 1
-    fpsLabel.Text = "FPS"
-    fpsLabel.TextColor3 = Color3.fromRGB(200, 200, 210)
-    fpsLabel.TextSize = 13
+    fpsLabel.Text = "FPS: 60"
+    fpsLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
+    fpsLabel.TextSize = 15
     fpsLabel.Font = Enum.Font.GothamMedium
     fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
-    fpsLabel.Parent = fpsContent
-    
-    local fpsValue = Instance.new("TextLabel")
-    fpsValue.Name = "Value"
-    fpsValue.Size = UDim2.new(1, -10, 0, 22)
-    fpsValue.Position = UDim2.new(0, 0, 0, 22)
-    fpsValue.BackgroundTransparency = 1
-    fpsValue.Text = "60"
-    fpsValue.TextColor3 = Color3.fromRGB(100, 255, 100)
-    fpsValue.TextSize = 18
-    fpsValue.Font = Enum.Font.GothamBold
-    fpsValue.TextXAlignment = Enum.TextXAlignment.Left
-    fpsValue.Parent = fpsContent
-    
-    -- Make draggable
+    fpsLabel.Parent = content
+
     local dragging = false
     local dragInput, dragStart, startPos
     local UserInputService = game:GetService("UserInputService")
@@ -202,14 +145,12 @@ local function createMonitorGUI()
     return {
         ScreenGui = screenGui,
         Container = container,
-        PingValue = pingValue,
-        FPSValue = fpsValue,
-        PingIcon = pingIcon,
-        FPSIcon = fpsIcon
+        PingLabel = pingLabel,
+        FPSLabel = fpsLabel,
+        LogoIcon = logoIcon
     }
 end
 
--- Fungsi untuk mendapatkan ping
 local function getPing()
     local ping = 0
     pcall(function()
@@ -229,7 +170,6 @@ local function getPing()
     return ping
 end
 
--- Fungsi untuk mendapatkan FPS real-time
 local function getFPS()
     local currentTime = tick()
     local deltaTime = currentTime - lastFrameTime
@@ -255,45 +195,42 @@ local function getFPS()
     return math.floor(math.clamp(averageFPS, 0, 240))
 end
 
--- Fungsi untuk update warna berdasarkan nilai
-local function updatePingColor(pingValue, value)
+local function updatePingColor(pingLabel, value)
     local ping = tonumber(value)
     if ping <= 50 then
-        pingValue.TextColor3 = Color3.fromRGB(100, 255, 100)
+        pingLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
     elseif ping <= 100 then
-        pingValue.TextColor3 = Color3.fromRGB(255, 255, 100)
+        pingLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
     elseif ping <= 150 then
-        pingValue.TextColor3 = Color3.fromRGB(255, 180, 100)
+        pingLabel.TextColor3 = Color3.fromRGB(255, 150, 100)
     else
-        pingValue.TextColor3 = Color3.fromRGB(255, 100, 100)
+        pingLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
     end
 end
 
-local function updateFPSColor(fpsValue, value)
+local function updateFPSColor(fpsLabel, value)
     local fps = tonumber(value)
     if fps >= 55 then
-        fpsValue.TextColor3 = Color3.fromRGB(100, 255, 100)
+        fpsLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
     elseif fps >= 40 then
-        fpsValue.TextColor3 = Color3.fromRGB(255, 255, 100)
+        fpsLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
     elseif fps >= 25 then
-        fpsValue.TextColor3 = Color3.fromRGB(255, 180, 100)
+        fpsLabel.TextColor3 = Color3.fromRGB(255, 150, 100)
     else
-        fpsValue.TextColor3 = Color3.fromRGB(255, 100, 100)
+        fpsLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
     end
 end
 
--- Fungsi untuk show panel
 function MonitorModule:Show()
     if self.GUI then
         self.GUI.ScreenGui.Enabled = true
         return
     end
     
-    print("🚀 Starting Ping & FPS Monitor...")
+    print("🚀 Starting Lynx Panel Monitor...")
     
     self.GUI = createMonitorGUI()
-    
-    -- Update loop untuk FPS (real-time)
+
     updateConnection = RunService.RenderStepped:Connect(function()
         if not self.GUI or not self.GUI.ScreenGui or not self.GUI.ScreenGui.Parent then
             if updateConnection then
@@ -303,11 +240,10 @@ function MonitorModule:Show()
         end
         
         local fps = getFPS()
-        self.GUI.FPSValue.Text = tostring(fps)
-        updateFPSColor(self.GUI.FPSValue, fps)
+        self.GUI.FPSLabel.Text = "FPS: " .. tostring(fps)
+        updateFPSColor(self.GUI.FPSLabel, fps)
     end)
     
-    -- Update ping dengan interval (setiap 0.5 detik)
     local lastPingUpdate = 0
     pingUpdateConnection = RunService.Heartbeat:Connect(function()
         if not self.GUI or not self.GUI.ScreenGui or not self.GUI.ScreenGui.Parent then
@@ -320,23 +256,21 @@ function MonitorModule:Show()
         local currentTime = tick()
         if currentTime - lastPingUpdate >= 0.5 then
             local ping = getPing()
-            self.GUI.PingValue.Text = ping .. " ms"
-            updatePingColor(self.GUI.PingValue, ping)
+            self.GUI.PingLabel.Text = "Ping: " .. ping .. " ms"
+            updatePingColor(self.GUI.PingLabel, ping)
             lastPingUpdate = currentTime
         end
     end)
     
-    print("✅ Ping & FPS Monitor loaded!")
+    print("✅ Lynx Panel Monitor loaded!")
 end
 
--- Fungsi untuk hide panel
 function MonitorModule:Hide()
     if self.GUI and self.GUI.ScreenGui then
         self.GUI.ScreenGui.Enabled = false
     end
 end
 
--- Fungsi untuk toggle panel
 function MonitorModule:Toggle()
     if self.GUI and self.GUI.ScreenGui then
         self.GUI.ScreenGui.Enabled = not self.GUI.ScreenGui.Enabled
@@ -345,7 +279,6 @@ function MonitorModule:Toggle()
     end
 end
 
--- Fungsi untuk destroy panel
 function MonitorModule:Destroy()
     if updateConnection then
         updateConnection:Disconnect()
@@ -363,23 +296,15 @@ function MonitorModule:Destroy()
     end
     
     fpsHistory = {}
-    print("✅ Monitor destroyed")
+    print("✅ Lynx Monitor destroyed")
 end
 
--- Fungsi untuk set custom icon
-function MonitorModule:SetPingIcon(imageId)
-    if self.GUI and self.GUI.PingIcon then
-        self.GUI.PingIcon.Image = imageId
+function MonitorModule:SetLogo(imageId)
+    if self.GUI and self.GUI.LogoIcon then
+        self.GUI.LogoIcon.Image = imageId
     end
 end
 
-function MonitorModule:SetFPSIcon(imageId)
-    if self.GUI and self.GUI.FPSIcon then
-        self.GUI.FPSIcon.Image = imageId
-    end
-end
-
--- Fungsi untuk set posisi
 function MonitorModule:SetPosition(x, y)
     if self.GUI and self.GUI.Container then
         self.GUI.Container.Position = UDim2.new(0, x, 0, y)
