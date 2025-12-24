@@ -2261,17 +2261,16 @@ if isWebhookSupported then
     end)
 end
 
--- Rarity Filter
-local AllRarities = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Exotic", "Limited"}
+-- Rarity Filter (sesuai dengan TIER_NAMES dari Webhook Module)
+local AllRarities = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "SECRET"}
 local rarityColors = {
-    Common = Color3.fromRGB(150, 150, 150),
-    Uncommon = Color3.fromRGB(76, 175, 80),
-    Rare = Color3.fromRGB(33, 150, 243),
-    Epic = Color3.fromRGB(156, 39, 176),
-    Legendary = Color3.fromRGB(255, 152, 0),
-    Mythical = Color3.fromRGB(233, 30, 99),
-    Exotic = Color3.fromRGB(255, 87, 34),
-    Limited = Color3.fromRGB(255, 215, 0)
+    Common = Color3.fromRGB(150, 150, 150),      -- Tier 1
+    Uncommon = Color3.fromRGB(76, 175, 80),      -- Tier 2
+    Rare = Color3.fromRGB(33, 150, 243),         -- Tier 3
+    Epic = Color3.fromRGB(156, 39, 176),         -- Tier 4
+    Legendary = Color3.fromRGB(255, 152, 0),     -- Tier 5
+    Mythic = Color3.fromRGB(255, 0, 0),          -- Tier 6 - Merah
+    SECRET = Color3.fromRGB(0, 255, 170)         -- Tier 7 - Hijau Tosca
 }
 
 local rarityCheckboxSystem = makeCheckboxList(
