@@ -1290,7 +1290,6 @@ local function makeCheckboxList(parent, items, colorMap, onSelectionChange)
     }
 end
 
--- Simple Checkbox Dropdown
 local function makeCheckboxDropdown(parent, title, items, colorMap, onChange)
     local selected = {}
     local refs = {}
@@ -1324,20 +1323,41 @@ local function makeCheckboxDropdown(parent, title, items, colorMap, onChange)
         new("TextLabel", {Parent = row, Size = UDim2.new(1, -26, 1, 0), Position = UDim2.new(0, 24, 0, 0), BackgroundTransparency = 1, Text = name, Font = Enum.Font.GothamBold, TextSize = 8, TextColor3 = colors.text, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 12})
         
         local on = false
-        row.MouseButton1Click:Connect(function()
+        
+        -- Ekstrak logika toggle ke fungsi terpisah
+        local function toggleCheckbox()
             on = not on
             check.Text = on and "✓" or ""
-            if on then table.insert(selected, name) else table.remove(selected, table.find(selected, name)) end
+            if on then 
+                table.insert(selected, name) 
+            else 
+                local idx = table.find(selected, name)
+                if idx then table.remove(selected, idx) end
+            end
             status.Text = tostring(#selected)
             pcall(onChange, selected)
-        end)
+        end
         
-        refs[name] = {set = function(v) if on ~= v then row.MouseButton1Click:Fire() end end, get = function() return on end}
+        row.MouseButton1Click:Connect(toggleCheckbox)
+        
+        -- Gunakan fungsi toggle untuk set
+        refs[name] = {
+            set = function(v) 
+                if on ~= v then 
+                    toggleCheckbox() 
+                end 
+            end, 
+            get = function() return on end
+        }
     end
     
     return {
         GetSelected = function() return selected end,
-        SelectSpecific = function(list) for n, r in pairs(refs) do r.set(table.find(list, n) ~= nil) end end
+        SelectSpecific = function(list) 
+            for n, r in pairs(refs) do 
+                r.set(table.find(list, n) ~= nil) 
+            end 
+        end
     }
 end
 
