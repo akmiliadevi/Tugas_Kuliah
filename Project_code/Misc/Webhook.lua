@@ -1,6 +1,6 @@
 -- ========================================
--- FISH WEBHOOK MODULE V3.0
--- File terpisah untuk di-load via loadstring
+-- FISH WEBHOOK MODULE V3.1 - EXECUTOR COMPATIBLE
+-- Fixed untuk Solara, Xeno, dan executor lainnya
 -- ========================================
 
 local WebhookModule = {}
@@ -14,20 +14,70 @@ local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 
 --------------------------------------------------
+-- EXECUTOR DETECTION & HTTP REQUEST FUNCTION
+--------------------------------------------------
+local function getHTTPRequest()
+    -- Coba berbagai metode request berdasarkan executor
+    local requestFunctions = {
+        -- Metode standar
+        request,
+        http_request,
+        -- Syn/Synapse
+        (syn and syn.request),
+        -- Fluxus
+        (fluxus and fluxus.request),
+        -- Script-Ware
+        (http and http.request),
+        -- Solara (khusus)
+        (solara and solara.request),
+        -- Fallback lainnya
+        (game and game.HttpGet and function(opts)
+            if opts.Method == "GET" then
+                return {Body = game:HttpGet(opts.Url)}
+            end
+        end)
+    }
+    
+    for _, func in ipairs(requestFunctions) do
+        if func and type(func) == "function" then
+            return func
+        end
+    end
+    
+    return nil
+end
+
+local httpRequest = getHTTPRequest()
+
+--------------------------------------------------
 -- CONFIG (Akan di-set dari GUI)
 --------------------------------------------------
 WebhookModule.Config = {
-    WebhookURL = "", -- Akan diisi dari GUI
+    WebhookURL = "",
     DiscordUserID = "",
     DebugMode = false,
-    EnabledRarities = {} -- Filter rarity yang aktif
+    EnabledRarities = {},
+    UseSimpleMode = false -- Mode sederhana tanpa thumbnail API
 }
 
 --------------------------------------------------
 -- MODULES
 --------------------------------------------------
-local Items = require(ReplicatedStorage:WaitForChild("Items"))
-local Variants = require(ReplicatedStorage:WaitForChild("Variants"))
+local Items, Variants
+
+-- Safe module loading
+local function loadGameModules()
+    local success, err = pcall(function()
+        Items = require(ReplicatedStorage:WaitForChild("Items"))
+        Variants = require(ReplicatedStorage:WaitForChild("Variants"))
+    end)
+    
+    if not success then
+        warn("⚠️ Failed to load game modules:", err)
+        return false
+    end
+    return true
+end
 
 --------------------------------------------------
 -- TIER CONFIG
@@ -59,57 +109,51 @@ local isRunning = false
 local eventConnection = nil
 
 --------------------------------------------------
--- HTTP REQUEST
---------------------------------------------------
-local function request(data)
-    local requestFunc = (syn and syn.request) or 
-        (http and http.request) or 
-        http_request or 
-        (fluxus and fluxus.request) or
-        request
-    
-    if requestFunc then
-        return requestFunc(data)
-    end
-end
-
---------------------------------------------------
 -- DEBUG PRINT
 --------------------------------------------------
 local function debugPrint(...)
-    -- Debug mode disabled by default untuk production
-    -- Uncomment baris di bawah jika butuh troubleshooting
-    -- if WebhookModule.Config.DebugMode then
-    --     print("[WEBHOOK DEBUG]", ...)
-    -- end
+    if WebhookModule.Config.DebugMode then
+        print("[WEBHOOK DEBUG]", ...)
+    end
 end
 
 --------------------------------------------------
 -- GET PLAYER DISPLAY NAME
 --------------------------------------------------
 local function getPlayerDisplayName()
-    -- Gunakan DisplayName jika tersedia, fallback ke Name jika tidak
     return LocalPlayer.DisplayName or LocalPlayer.Name
 end
 
 --------------------------------------------------
--- DISCORD IMAGE URL
+-- DISCORD IMAGE URL (SAFE VERSION)
 --------------------------------------------------
 local function getDiscordImageUrl(assetId)
     if not assetId then return nil end
+    
+    -- Mode sederhana: langsung return rbxcdn
+    if WebhookModule.Config.UseSimpleMode then
+        return string.format(
+            "https://tr.rbxcdn.com/180DAY-%s/420/420/Image/Png",
+            tostring(assetId)
+        )
+    end
+    
+    -- Mode advanced: coba thumbnail API (bisa gagal di beberapa executor)
+    if not httpRequest then
+        debugPrint("⚠️ No HTTP request function available, using simple mode")
+        return string.format(
+            "https://tr.rbxcdn.com/180DAY-%s/420/420/Image/Png",
+            tostring(assetId)
+        )
+    end
     
     local thumbnailUrl = string.format(
         "https://thumbnails.roblox.com/v1/assets?assetIds=%s&returnPolicy=PlaceHolder&size=420x420&format=Png&isCircular=false",
         tostring(assetId)
     )
     
-    local rbxcdnUrl = string.format(
-        "https://tr.rbxcdn.com/180DAY-%s/420/420/Image/Png",
-        tostring(assetId)
-    )
-    
     local success, result = pcall(function()
-        local response = request({
+        local response = httpRequest({
             Url = thumbnailUrl,
             Method = "GET"
         })
@@ -127,8 +171,12 @@ local function getDiscordImageUrl(assetId)
         return result
     end
     
+    -- Fallback
     debugPrint("⚠️ Thumbnail API failed, using rbxcdn fallback")
-    return rbxcdnUrl
+    return string.format(
+        "https://tr.rbxcdn.com/180DAY-%s/420/420/Image/Png",
+        tostring(assetId)
+    )
 end
 
 --------------------------------------------------
@@ -167,6 +215,8 @@ end
 -- GET FISH DATA
 --------------------------------------------------
 local function getFish(itemId)
+    if not Items then return nil end
+    
     for _, f in pairs(Items) do
         if f.Data and f.Data.Id == itemId then
             return f
@@ -178,7 +228,7 @@ end
 -- GET VARIANT DATA
 --------------------------------------------------
 local function getVariant(id)
-    if not id then return nil end
+    if not id or not Variants then return nil end
     
     local idStr = tostring(id)
     
@@ -196,7 +246,7 @@ local function getVariant(id)
 end
 
 --------------------------------------------------
--- SEND WEBHOOK
+-- SEND WEBHOOK (SAFE VERSION)
 --------------------------------------------------
 local function send(fish, meta, extra)
     -- Validasi webhook URL
@@ -205,12 +255,16 @@ local function send(fish, meta, extra)
         return
     end
     
+    -- Validasi HTTP request function
+    if not httpRequest then
+        warn("❌ No HTTP request function available!")
+        return
+    end
+    
     local tier = TIER_NAMES[fish.Data.Tier] or "Unknown"
     local color = TIER_COLORS[fish.Data.Tier] or 3447003
     
-    -- FILTER RARITY: Cek apakah rarity ini diaktifkan
-    -- PENTING: Jika EnabledRarities kosong (length = 0), kirim SEMUA
-    -- Jika EnabledRarities ada isinya, hanya kirim yang ada di list
+    -- FILTER RARITY
     if WebhookModule.Config.EnabledRarities and #WebhookModule.Config.EnabledRarities > 0 then
         local isEnabled = false
         
@@ -222,7 +276,6 @@ local function send(fish, meta, extra)
         end
         
         if not isEnabled then
-            -- Skip fish yang tidak ada di filter
             return
         end
     end
@@ -256,15 +309,13 @@ local function send(fish, meta, extra)
     end
     
     local imageUrl = getFishImageUrl(fish)
-    
-    -- PERUBAHAN UTAMA: Gunakan Display Name daripada Username
     local playerDisplayName = getPlayerDisplayName()
     local mention = WebhookModule.Config.DiscordUserID ~= "" and "<@" .. WebhookModule.Config.DiscordUserID .. "> " or ""
     
     local congratsMsg = string.format(
         "%s **%s** You have obtained a new **%s** fish!",
         mention,
-        playerDisplayName,  -- Menggunakan Display Name
+        playerDisplayName,
         tier
     )
     
@@ -316,7 +367,7 @@ local function send(fish, meta, extra)
     }
     
     local success, err = pcall(function()
-        request({
+        httpRequest({
             Url = WebhookModule.Config.WebhookURL,
             Method = "POST",
             Headers = {
@@ -337,36 +388,35 @@ end
 -- PUBLIC FUNCTIONS
 --------------------------------------------------
 
--- Set Webhook URL
 function WebhookModule:SetWebhookURL(url)
     self.Config.WebhookURL = url
     debugPrint("Webhook URL set:", url)
 end
 
--- Set Discord User ID (optional)
 function WebhookModule:SetDiscordUserID(id)
     self.Config.DiscordUserID = id
     debugPrint("Discord User ID set:", id)
 end
 
--- Enable/Disable Debug Mode
 function WebhookModule:SetDebugMode(enabled)
     self.Config.DebugMode = enabled
     debugPrint("Debug mode:", enabled and "ENABLED" or "DISABLED")
 end
 
--- Set Enabled Rarities Filter
 function WebhookModule:SetEnabledRarities(rarities)
     self.Config.EnabledRarities = rarities
     debugPrint("Enabled rarities:", table.concat(rarities, ", "))
 end
 
--- Get available tier names
+function WebhookModule:SetSimpleMode(enabled)
+    self.Config.UseSimpleMode = enabled
+    debugPrint("Simple mode:", enabled and "ENABLED" or "DISABLED")
+end
+
 function WebhookModule:GetTierNames()
     return TIER_NAMES
 end
 
--- Start webhook logger
 function WebhookModule:Start()
     if isRunning then
         warn("⚠️ Webhook logger sudah berjalan!")
@@ -378,9 +428,27 @@ function WebhookModule:Start()
         return false
     end
     
-    local Event = ReplicatedStorage.Packages
-        ._Index["sleitnick_net@0.2.0"]
-        .net["RE/ObtainedNewFishNotification"]
+    if not httpRequest then
+        warn("❌ HTTP request function not supported in this executor!")
+        return false
+    end
+    
+    -- Load game modules
+    if not loadGameModules() then
+        warn("❌ Failed to load game modules!")
+        return false
+    end
+    
+    local success, Event = pcall(function()
+        return ReplicatedStorage.Packages
+            ._Index["sleitnick_net@0.2.0"]
+            .net["RE/ObtainedNewFishNotification"]
+    end)
+    
+    if not success or not Event then
+        warn("❌ Failed to find fish event!")
+        return false
+    end
     
     eventConnection = Event.OnClientEvent:Connect(function(itemId, metadata, extraData)
         debugPrint("\n=== NEW FISH EVENT ===")
@@ -395,11 +463,10 @@ function WebhookModule:Start()
     end)
     
     isRunning = true
-    print("✅ Fish Webhook Logger V3.0 Started!")
+    print("✅ Fish Webhook Logger V3.1 Started!")
     return true
 end
 
--- Stop webhook logger
 function WebhookModule:Stop()
     if not isRunning then
         warn("⚠️ Webhook logger tidak berjalan!")
@@ -416,14 +483,17 @@ function WebhookModule:Stop()
     return true
 end
 
--- Check if running
 function WebhookModule:IsRunning()
     return isRunning
 end
 
--- Get current config
 function WebhookModule:GetConfig()
     return self.Config
+end
+
+-- Check if executor supports webhook
+function WebhookModule:IsSupported()
+    return httpRequest ~= nil
 end
 
 return WebhookModule
