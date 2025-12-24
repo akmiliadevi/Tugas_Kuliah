@@ -252,7 +252,7 @@ LoadingNotification.Update(1, 32, "SecurityLoader")
 -- Module List
 local ModuleList = {
     "Notify", "HideStats", "Webhook",
-    "instant", "instant2", "blatantv1", "UltraBlatant", "blatantv2", "blatantv2fix",
+    "instant", "instant2", "blatantv1", "UltraBlatant", "blatantv2", "blatantv2fix", "AutoFavorite",
     "GoodPerfectionStable",
     "NoFishingAnimation", "LockPosition", "AutoEquipRod", "DisableCutscenes",
     "DisableExtras", "AutoTotem3X", "SkinAnimation", "WalkOnWater",
@@ -1672,9 +1672,54 @@ ToggleReferences.GoodPerfectionStable = makeToggle(catSupport, "Good/Perfection 
     end
 end)
 
--- ============================================
--- AUTO TOTEM & SKIN ANIMATION
--- ============================================
+-- AUTO FAVORITE
+local catAutoFav = makeCategory(mainPage, "Auto Favorite", "⭐")
+local AutoFavorite = GetModule("AutoFavorite")
+
+if AutoFavorite then
+    local tierCheckboxSystem = makeCheckboxList(
+        catAutoFav,
+        AutoFavorite.GetAllTiers(),
+        {
+            Common = Color3.fromRGB(150, 150, 150),
+            Uncommon = Color3.fromRGB(76, 175, 80),
+            Rare = Color3.fromRGB(33, 150, 243),
+            Epic = Color3.fromRGB(156, 39, 176),
+            Legendary = Color3.fromRGB(255, 152, 0),
+            Mythic = Color3.fromRGB(255, 0, 0),
+            SECRET = Color3.fromRGB(0, 255, 170)
+        },
+        function(selectedTiers)
+            AutoFavorite.ClearTiers()
+            AutoFavorite.EnableTiers(selectedTiers)
+            SetConfigValue("AutoFavorite.EnabledTiers", selectedTiers)
+            SaveCurrentConfig()
+        end
+    )
+    
+    local variantCheckboxSystem = makeCheckboxList(
+        catAutoFav,
+        AutoFavorite.GetAllVariants(),
+        nil,
+        function(selectedVariants)
+            AutoFavorite.ClearVariants()
+            AutoFavorite.EnableVariants(selectedVariants)
+            SetConfigValue("AutoFavorite.EnabledVariants", selectedVariants)
+            SaveCurrentConfig()
+        end
+    )
+    
+    makeButton(catAutoFav, "✓ Select All Tiers", function()
+        tierCheckboxSystem.SelectAll()
+    end)
+    
+    makeButton(catAutoFav, "✗ Clear All", function()
+        tierCheckboxSystem.ClearAll()
+        variantCheckboxSystem.ClearAll()
+    end)
+end
+
+--auto totem
 local catAutoTotem = makeCategory(mainPage, "Auto Spawn 3X Totem", "🛠️")
 
 makeButton(catAutoTotem, "Auto Totem 3X", function()
@@ -1771,13 +1816,10 @@ makeToggle(catSkin, "Enable Skin Animation", function(on)
     end
 end)
 
--- ============================================
 -- TELEPORT PAGE
--- ============================================
 local TeleportModule = GetModule("TeleportModule")
 local TeleportToPlayer = GetModule("TeleportToPlayer")
 local SavedLocation = GetModule("SavedLocation")
-
 -- Location Teleport
 if TeleportModule then
     local locationItems = {}
@@ -1790,7 +1832,6 @@ if TeleportModule then
         TeleportModule.TeleportTo(selectedLocation)
     end, "LocationTeleport")
 end
-
 -- Player Teleport
 local playerDropdown
 local function updatePlayerList()
@@ -1901,9 +1942,7 @@ if EventTeleport then
     end)
 end
 
--- ============================================
 -- SHOP PAGE
--- ============================================
 local AutoSell = GetModule("AutoSell")
 local MerchantSystem = GetModule("MerchantSystem")
 local RemoteBuyer = GetModule("RemoteBuyer")
@@ -1953,8 +1992,6 @@ else
         ZIndex = 8
     })
 end
-
--- Part 5/8: Shop & Webhook Pages
 
 -- Auto Buy Weather
 local catWeather = makeCategory(shopPage, "Auto Buy Weather", "🌦️")
@@ -2090,9 +2127,7 @@ if RemoteBuyer then
     end)
 end
 
--- ============================================
 -- WEBHOOK PAGE
--- ============================================
 local catWebhook = makeCategory(webhookPage, "Webhook Configuration", "🔗")
 local WebhookModule = GetModule("Webhook")
 local currentWebhookURL = GetConfigValue("Webhook.URL", "")
@@ -2393,9 +2428,7 @@ if not isWebhookSupported then
     end)
 end
 
--- ============================================
 -- CAMERA VIEW PAGE
--- ============================================
 local catZoom = makeCategory(cameraViewPage, "Unlimited Zoom", "🔍")
 local UnlimitedZoomModule = GetModule("UnlimitedZoomModule")
 
@@ -2449,9 +2482,7 @@ makeInput(catFreecam, "Mouse Sensitivity", GetConfigValue("CameraView.Freecam.Se
     if FreecamModule then FreecamModule.SetSensitivity(value) end
 end)
 
--- ============================================
 -- SETTINGS PAGE
--- ============================================
 local catAFK = makeCategory(settingsPage, "Anti-AFK", "⏱️")
 local AntiAFK = GetModule("AntiAFK")
 
@@ -2566,8 +2597,6 @@ fakeNameTextBox.FocusLost:Connect(function()
         end
     end
 end)
-
--- Part 6/8: Settings, Info & Interactions
 
 -- Fake Level Input
 local fakeLevelFrame = new("Frame", {
@@ -2763,9 +2792,7 @@ task.spawn(function()
     end)
 end)
 
--- ============================================
 -- INFO PAGE
--- ============================================
 local infoContainer = new("Frame", {
     Parent = infoPage,
     Size = UDim2.new(1, 0, 0, 200),
@@ -2858,9 +2885,7 @@ task.spawn(function()
     end)
 end)
 
--- ============================================
 -- MINIMIZE SYSTEM
--- ============================================
 local minimized = false
 local icon
 local savedIconPos = UDim2.new(0, 20, 0, 100)
@@ -2930,9 +2955,7 @@ btnMinHeader.MouseButton1Click:Connect(function()
     end
 end)
 
--- ============================================
 -- DRAGGING SYSTEM
--- ============================================
 local dragging, dragStart, startPos = false, nil, nil
 
 scriptHeader.InputBegan:Connect(function(input)
@@ -2955,9 +2978,7 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- ============================================
 -- RESIZING SYSTEM
--- ============================================
 local resizeStart, startSize = nil, nil
 
 resizeHandle.InputBegan:Connect(function(input)
@@ -2981,9 +3002,7 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- ============================================
 -- OPENING ANIMATION
--- ============================================
 task.spawn(function()
     win.Size = UDim2.new(0, 0, 0, 0)
     win.Position = UDim2.new(0.5, -windowSize.X.Offset/2, 0.5, -windowSize.Y.Offset/2)
@@ -3000,9 +3019,7 @@ task.spawn(function()
     }):Play()
 end)
 
--- ============================================
 -- APPLY CONFIG ON STARTUP
--- ============================================
 local function ApplyLoadedConfig()
     if not ConfigSystem then return end
     
@@ -3096,8 +3113,6 @@ local function ApplyLoadedConfig()
             ToggleReferences.HideStats.setOn(GetConfigValue("Settings.HideStats.Enabled", false), true)
         end
     end)
-
-    -- Part 7/8: Module Auto-Start & Final Setup
 
     -- Start Modules Based on Config
     task.spawn(function()
@@ -3290,10 +3305,7 @@ task.spawn(function()
     end)
 end)
 
--- ============================================
 -- PERFORMANCE OPTIMIZATIONS
--- ============================================
-
 -- Reduce GUI Update Frequency for Low-End Devices
 if isMobile or UserInputService:GetPlatform() == Enum.Platform.Android or UserInputService:GetPlatform() == Enum.Platform.IOS then
     -- Disable animations for mobile
@@ -3341,16 +3353,9 @@ gui.Destroying:Connect(function()
     end
 end)
 
--- ============================================
 -- FINAL SUCCESS NOTIFICATION
--- ============================================
-
 SendNotification("✨ Lynx GUI v2.3", "Loaded! " .. loadedModules .. "/" .. totalModules .. " modules ready.", 5)
-
--- ============================================
 -- CONSOLE OUTPUT (Minimal)
--- ============================================
-
 print("━━━━━━━━━━━━━━━━━━━━━━")
 print("✨ Lynx GUI v2.3 Optimized")
 print("━━━━━━━━━━━━━━━━━━━━━━")
@@ -3509,10 +3514,7 @@ task.spawn(function()
     end
 end)
 
--- ============================================
 -- ERROR HANDLING & RECOVERY
--- ============================================
-
 -- Global error handler
 local function safeCall(func, ...)
     local success, err = pcall(func, ...)
@@ -3531,11 +3533,7 @@ local function safeModuleCall(moduleName, methodName, ...)
     return false
 end
 
-
--- ============================================
 -- FINALIZATION
--- ============================================
-
 -- Mark GUI as fully loaded
 local guiLoaded = true
 
@@ -3568,8 +3566,5 @@ print("📱 Device: " .. (isMobile and "Mobile" or "Desktop"))
 print("⚡ Performance Mode: " .. (isLowEndDevice() and "Enabled" or "Standard"))
 print("\n🎮 Enjoy!\n")
 
--- ============================================
 -- FINAL NOTIFICATION
--- ============================================
-
 SendNotification("✨ Lynx GUI v2.3", "Loaded! " .. loadedModules .. "/" .. totalModules .. " modules ready.", 5)
