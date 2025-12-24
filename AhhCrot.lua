@@ -1337,8 +1337,6 @@ local function makeCheckboxDropdown(parent, title, items, colorMap, onChange)
     
     return {
         GetSelected = function() return selected end,
-        SelectAll = function() for _, r in pairs(refs) do if not r.get() then r.set(true) end end end,
-        ClearAll = function() for _, r in pairs(refs) do if r.get() then r.set(false) end end end,
         SelectSpecific = function(list) for n, r in pairs(refs) do r.set(table.find(list, n) ~= nil) end end
     }
 end
@@ -1736,16 +1734,6 @@ if AutoFavorite then
     
     local varSys = makeCheckboxDropdown(catAutoFav, "Variant Filter", AutoFavorite.GetAllVariants(), nil, function(sel) AutoFavorite.ClearVariants() AutoFavorite.EnableVariants(sel) SetConfigValue("AutoFavorite.EnabledVariants", sel) SaveCurrentConfig() end)
     
-    local btnRow = new("Frame", {Parent = catAutoFav, Size = UDim2.new(1, 0, 0, 28), BackgroundTransparency = 1, ZIndex = 7})
-    new("UIListLayout", {Parent = btnRow, FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6)})
-    
-    local function makeQuickBtn(text, color, callback)
-        local f = new("Frame", {Parent = btnRow, Size = UDim2.new(0.48, 0, 1, 0), BackgroundColor3 = color, BackgroundTransparency = 0.3, BorderSizePixel = 0, ZIndex = 8})
-        new("UICorner", {Parent = f, CornerRadius = UDim.new(0, 6)})
-        local b = new("TextButton", {Parent = f, Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = text, Font = Enum.Font.GothamBold, TextSize = 8, TextColor3 = colors.text, ZIndex = 9})
-        b.MouseButton1Click:Connect(callback)
-    end
-    
     task.spawn(function()
         task.wait(0.5)
         tierSys.SelectSpecific(GetConfigValue("AutoFavorite.EnabledTiers", {}))
@@ -2042,16 +2030,6 @@ if AutoBuyWeather then
             SaveCurrentConfig()
         end
     )
-    
-    makeButton(catWeather, "✓ Select All Weather", function()
-        weatherCheckboxSystem.SelectAll()
-        SendNotification("Weather", "All weather selected!", 2)
-    end)
-    
-    makeButton(catWeather, "✗ Clear Selection", function()
-        weatherCheckboxSystem.ClearAll()
-        SendNotification("Weather", "Selection cleared!", 2)
-    end)
     
     ToggleReferences.AutoBuyWeather = makeToggle(catWeather, "Enable Auto Weather", function(on)
         SetConfigValue("Shop.AutoBuyWeather.Enabled", on)
@@ -2365,24 +2343,6 @@ if not isWebhookSupported then
         end
     end)
 end
-
-makeButton(catWebhook, "✓ Select All Rarities", function()
-    if not isWebhookSupported then
-        SendNotification("Error", "Webhook not supported!", 3)
-        return
-    end
-    rarityCheckboxSystem.SelectAll()
-    SendNotification("Webhook", "All rarities selected!", 2)
-end)
-
-makeButton(catWebhook, "✗ Clear Selection", function()
-    if not isWebhookSupported then
-        SendNotification("Error", "Webhook not supported!", 3)
-        return
-    end
-    rarityCheckboxSystem.ClearAll()
-    SendNotification("Webhook", "Selection cleared!", 2)
-end)
 
 -- Toggle Webhook (disabled jika tidak support)
 ToggleReferences.Webhook = makeToggle(catWebhook, "Enable Webhook" .. (not isWebhookSupported and " (Not Supported)" or ""), function(on)
