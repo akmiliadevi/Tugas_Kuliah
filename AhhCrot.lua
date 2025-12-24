@@ -251,7 +251,7 @@ LoadingNotification.Update(1, 32, "SecurityLoader")
 
 -- Module List
 local ModuleList = {
-    "Notify", "HideStats", "Webhook",
+    "Notify", "HideStats", "Webhook", "PingFPSMonitor",
     "instant", "instant2", "blatantv1", "UltraBlatant", "blatantv2", "blatantv2fix", "AutoFavorite",
     "GoodPerfectionStable",
     "NoFishingAnimation", "LockPosition", "AutoEquipRod", "DisableCutscenes",
@@ -1677,6 +1677,19 @@ ToggleReferences.NoFishingAnimation = makeToggle(catSupport, "No Fishing Animati
     local NoFishingAnimation = GetModule("NoFishingAnimation")
     if NoFishingAnimation then
         if on then NoFishingAnimation.StartWithDelay() else NoFishingAnimation.Stop() end
+    end
+end)
+
+ToggleReferences.PingFPSMonitor = makeToggle(catSupport, "Ping & FPS Monitor", function(on)
+    SetConfigValue("Support.PingFPSMonitor", on)
+    SaveCurrentConfig()
+    local PingFPSMonitor = GetModule("PingFPSMonitor")
+    if PingFPSMonitor then
+        if on then 
+            PingFPSMonitor:Show()
+        else 
+            PingFPSMonitor:Hide()
+        end
     end
 end)
 
