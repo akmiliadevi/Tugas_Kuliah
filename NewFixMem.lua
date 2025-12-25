@@ -93,6 +93,39 @@ function ConnectionManager:Cleanup()
 end
 
 -- ============================================
+-- TASK TRACKING SYSTEM (DEFINE EARLY!)
+-- ============================================
+local RunningTasks = {}
+
+local function TrackedSpawn(func)
+    local thread = task.spawn(func)
+    table.insert(RunningTasks, thread)
+    return thread
+end
+
+-- ============================================
+-- UTILITY FUNCTIONS
+-- ============================================
+local function new(class, props)
+    local inst = Instance.new(class)
+    for k, v in pairs(props or {}) do 
+        inst[k] = v 
+    end
+    return inst
+end
+
+local function SendNotification(title, text, duration)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = duration or 5,
+            Icon = "rbxassetid://118176705805619"
+        })
+    end)
+end
+
+-- ============================================
 -- UTILITY FUNCTIONS
 -- ============================================
 local function new(class, props)
@@ -3290,17 +3323,6 @@ ConnectionManager:Add(UserInputService.InputEnded:Connect(function(input)
         resizing = false
     end
 end))
-
--- ============================================
--- TASK TRACKING SYSTEM (MUST BE BEFORE ANY task.spawn!)
--- ============================================
-local RunningTasks = {}
-
-local function TrackedSpawn(func)
-    local thread = task.spawn(func)
-    table.insert(RunningTasks, thread)
-    return thread
-end
 
 -- ============================================
 -- OPENING ANIMATION (NOW USING TrackedSpawn!)
