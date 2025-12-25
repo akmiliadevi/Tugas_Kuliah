@@ -1,6 +1,6 @@
 -- ========================================
 -- FISH WEBHOOK MODULE V3.1 - EXECUTOR COMPATIBLE
--- Fixed untuk Solara, Xeno, dan executor lainnyaaa
+-- Fixed untuk Solara, Xeno, dan executor lainnyauuuuu
 -- ========================================
 
 local WebhookModule = {}
@@ -125,14 +125,20 @@ local function getPlayerDisplayName()
 end
 
 --------------------------------------------------
--- DISCORD IMAGE URL (IMPROVED VERSION)
+-- DISCORD IMAGE URL (WORKING VERSION - RBXCDN FALLBACK)
 --------------------------------------------------
 local function getDiscordImageUrl(assetId)
     if not assetId then return nil end
     
     local assetIdStr = tostring(assetId)
     
-    -- Prioritas 1: Coba Thumbnail API (paling reliable untuk Discord)
+    -- Prioritas 1: rbxcdn (PALING RELIABLE)
+    local rbxcdnUrl = string.format(
+        "https://tr.rbxcdn.com/180DAY-%s/420/420/Image/Png",
+        assetIdStr
+    )
+    
+    -- Prioritas 2: Coba Thumbnail API jika executor support
     if httpRequest and not WebhookModule.Config.UseSimpleMode then
         local thumbnailUrl = string.format(
             "https://thumbnails.roblox.com/v1/assets?assetIds=%s&returnPolicy=PlaceHolder&size=420x420&format=Png&isCircular=false",
@@ -159,14 +165,9 @@ local function getDiscordImageUrl(assetId)
         end
     end
     
-    -- Prioritas 2: AssetDelivery API (lebih stabil dari rbxcdn)
-    local assetDeliveryUrl = string.format(
-        "https://assetdelivery.roblox.com/v1/asset/?id=%s",
-        assetIdStr
-    )
-    
-    debugPrint("✅ Using AssetDelivery URL:", assetDeliveryUrl)
-    return assetDeliveryUrl
+    -- Default fallback: rbxcdn (sudah terbukti bekerja)
+    debugPrint("✅ Using rbxcdn URL:", rbxcdnUrl)
+    return rbxcdnUrl
 end
 
 --------------------------------------------------
