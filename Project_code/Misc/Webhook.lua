@@ -1,6 +1,6 @@
 -- ========================================
 -- FISH WEBHOOK MODULE V3.1 - EXECUTOR COMPATIBLE
--- Fixed untuk Solara, Xeno, dan executor lainnyauuuuu
+-- Fixed untuk Solara, Xeno, dan executor lainnyaggggg
 -- ========================================
 
 local WebhookModule = {}
@@ -112,9 +112,8 @@ local eventConnection = nil
 -- DEBUG PRINT
 --------------------------------------------------
 local function debugPrint(...)
-    if WebhookModule.Config.DebugMode then
-        print("[WEBHOOK DEBUG]", ...)
-    end
+    -- TEMPORARY: Always print for debugging
+    print("[WEBHOOK DEBUG]", ...)
 end
 
 --------------------------------------------------
@@ -125,26 +124,23 @@ local function getPlayerDisplayName()
 end
 
 --------------------------------------------------
--- DISCORD IMAGE URL (WORKING VERSION - RBXCDN FALLBACK)
+-- DISCORD IMAGE URL (EXACT SAME AS WORKING VERSION)
 --------------------------------------------------
 local function getDiscordImageUrl(assetId)
     if not assetId then return nil end
     
-    local assetIdStr = tostring(assetId)
-    
-    -- Prioritas 1: rbxcdn (PALING RELIABLE)
-    local rbxcdnUrl = string.format(
-        "https://tr.rbxcdn.com/180DAY-%s/420/420/Image/Png",
-        assetIdStr
+    local thumbnailUrl = string.format(
+        "https://thumbnails.roblox.com/v1/assets?assetIds=%s&returnPolicy=PlaceHolder&size=420x420&format=Png&isCircular=false",
+        tostring(assetId)
     )
     
-    -- Prioritas 2: Coba Thumbnail API jika executor support
-    if httpRequest and not WebhookModule.Config.UseSimpleMode then
-        local thumbnailUrl = string.format(
-            "https://thumbnails.roblox.com/v1/assets?assetIds=%s&returnPolicy=PlaceHolder&size=420x420&format=Png&isCircular=false",
-            assetIdStr
-        )
-        
+    local rbxcdnUrl = string.format(
+        "https://tr.rbxcdn.com/180DAY-%s/420/420/Image/Png",
+        tostring(assetId)
+    )
+    
+    -- Coba Thumbnail API dulu (jika httpRequest tersedia)
+    if httpRequest then
         local success, result = pcall(function()
             local response = httpRequest({
                 Url = thumbnailUrl,
@@ -160,13 +156,13 @@ local function getDiscordImageUrl(assetId)
         end)
         
         if success and result then
-            debugPrint("✅ Got Thumbnail API URL:", result)
+            debugPrint("✅ Got thumbnail URL:", result)
             return result
         end
     end
     
-    -- Default fallback: rbxcdn (sudah terbukti bekerja)
-    debugPrint("✅ Using rbxcdn URL:", rbxcdnUrl)
+    -- Fallback ke rbxcdn
+    debugPrint("⚠️ Thumbnail API failed, using rbxcdn fallback")
     return rbxcdnUrl
 end
 
