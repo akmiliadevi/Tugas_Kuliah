@@ -1,6 +1,6 @@
 -- ========================================
 -- FISH WEBHOOK MODULE V3.1 - EXECUTOR COMPATIBLE
--- Fixed untuk Solara, Xeno, dan executor lainnya
+-- Fixed untuk Solara, Xeno, dan executor lainnyaaa
 -- ========================================
 
 local WebhookModule = {}
@@ -125,58 +125,48 @@ local function getPlayerDisplayName()
 end
 
 --------------------------------------------------
--- DISCORD IMAGE URL (SAFE VERSION)
+-- DISCORD IMAGE URL (IMPROVED VERSION)
 --------------------------------------------------
 local function getDiscordImageUrl(assetId)
     if not assetId then return nil end
     
-    -- Mode sederhana: langsung return rbxcdn
-    if WebhookModule.Config.UseSimpleMode then
-        return string.format(
-            "https://tr.rbxcdn.com/180DAY-%s/420/420/Image/Png",
-            tostring(assetId)
+    local assetIdStr = tostring(assetId)
+    
+    -- Prioritas 1: Coba Thumbnail API (paling reliable untuk Discord)
+    if httpRequest and not WebhookModule.Config.UseSimpleMode then
+        local thumbnailUrl = string.format(
+            "https://thumbnails.roblox.com/v1/assets?assetIds=%s&returnPolicy=PlaceHolder&size=420x420&format=Png&isCircular=false",
+            assetIdStr
         )
-    end
-    
-    -- Mode advanced: coba thumbnail API (bisa gagal di beberapa executor)
-    if not httpRequest then
-        debugPrint("⚠️ No HTTP request function available, using simple mode")
-        return string.format(
-            "https://tr.rbxcdn.com/180DAY-%s/420/420/Image/Png",
-            tostring(assetId)
-        )
-    end
-    
-    local thumbnailUrl = string.format(
-        "https://thumbnails.roblox.com/v1/assets?assetIds=%s&returnPolicy=PlaceHolder&size=420x420&format=Png&isCircular=false",
-        tostring(assetId)
-    )
-    
-    local success, result = pcall(function()
-        local response = httpRequest({
-            Url = thumbnailUrl,
-            Method = "GET"
-        })
         
-        if response and response.Body then
-            local data = HttpService:JSONDecode(response.Body)
-            if data and data.data and data.data[1] and data.data[1].imageUrl then
-                return data.data[1].imageUrl
+        local success, result = pcall(function()
+            local response = httpRequest({
+                Url = thumbnailUrl,
+                Method = "GET"
+            })
+            
+            if response and response.Body then
+                local data = HttpService:JSONDecode(response.Body)
+                if data and data.data and data.data[1] and data.data[1].imageUrl then
+                    return data.data[1].imageUrl
+                end
             end
+        end)
+        
+        if success and result then
+            debugPrint("✅ Got Thumbnail API URL:", result)
+            return result
         end
-    end)
-    
-    if success and result then
-        debugPrint("✅ Got thumbnail URL:", result)
-        return result
     end
     
-    -- Fallback
-    debugPrint("⚠️ Thumbnail API failed, using rbxcdn fallback")
-    return string.format(
-        "https://tr.rbxcdn.com/180DAY-%s/420/420/Image/Png",
-        tostring(assetId)
+    -- Prioritas 2: AssetDelivery API (lebih stabil dari rbxcdn)
+    local assetDeliveryUrl = string.format(
+        "https://assetdelivery.roblox.com/v1/asset/?id=%s",
+        assetIdStr
     )
+    
+    debugPrint("✅ Using AssetDelivery URL:", assetDeliveryUrl)
+    return assetDeliveryUrl
 end
 
 --------------------------------------------------
