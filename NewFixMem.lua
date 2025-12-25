@@ -330,12 +330,25 @@ if totalModules == 0 then
     return
 end
 
--- Module Loading with Retry
 local MAX_RETRIES = 3
 local RETRY_DELAY = 1
+local moduleRetryCount = {} -- Track retry count per module
 
 local function LoadModuleWithRetry(moduleName, retryCount)
     retryCount = retryCount or 0
+    
+    -- Prevent infinite retry
+    if not moduleRetryCount[moduleName] then
+        moduleRetryCount[moduleName] = 0
+    end
+    
+    moduleRetryCount[moduleName] = moduleRetryCount[moduleName] + 1
+    
+    -- Hard limit: stop after 10 total attempts
+    if moduleRetryCount[moduleName] > 10 then
+        warn("⚠️ Module " .. moduleName .. " exceeded retry limit!")
+        return false
+    end
     
     local success, result = pcall(function()
         return SecurityLoader.LoadModule(moduleName)
@@ -345,6 +358,7 @@ local function LoadModuleWithRetry(moduleName, retryCount)
         Modules[moduleName] = result
         ModuleStatus[moduleName] = "✅"
         loadedModules = loadedModules + 1
+        moduleRetryCount[moduleName] = nil -- Clear counter on success
         return true
     else
         if retryCount < MAX_RETRIES then
@@ -354,10 +368,12 @@ local function LoadModuleWithRetry(moduleName, retryCount)
             Modules[moduleName] = nil
             ModuleStatus[moduleName] = "❌"
             table.insert(failedModules, moduleName)
+            moduleRetryCount[moduleName] = nil -- Clear counter on final failure
             return false
         end
     end
 end
+
 
 local function LoadAllModules()
     for _, moduleName in ipairs(ModuleList) do
@@ -1249,7 +1265,7 @@ local function makeDropdown(parent, title, icon, items, onSelect, uniqueId, defa
     end
     
     if defaultValue and table.find(items, defaultValue) then
-        task.spawn(function()
+        TrackedSpawn(function()
             task.wait(0.1)
             setSelectedItem(defaultValue, false)
         end)
@@ -1602,7 +1618,7 @@ local fishingDelayValue = savedFishingDelay
 local cancelDelayValue = savedCancelDelay
 local isInstantFishingEnabled = false
 
-task.spawn(function()
+TrackedSpawn(function()
     task.wait(0.5)
     local instant = GetModule("instant")
     local instant2 = GetModule("instant2")
@@ -1661,7 +1677,7 @@ ToggleReferences.InstantFishing = makeToggle(catAutoFishing, "Enable Instant Fis
     end
 end)
 
-task.spawn(function()
+TrackedSpawn(function()
     task.wait(0.5)
     if savedInstantEnabled and ToggleReferences.InstantFishing then
         ToggleReferences.InstantFishing.setOn(savedInstantEnabled, true)
@@ -1707,7 +1723,7 @@ local catBlatantV2 = makeCategory(mainPage, "Blatant Tester", "🎯")
 local savedBlatantTesterCompleteDelay = GetConfigValue("BlatantTester.CompleteDelay", 0.5)
 local savedBlatantTesterCancelDelay = GetConfigValue("BlatantTester.CancelDelay", 0.1)
 
-task.spawn(function()
+TrackedSpawn(function()
     task.wait(0.5)
     local blatantv2fix = GetModule("blatantv2fix")
     if blatantv2fix then
@@ -1748,7 +1764,7 @@ local catBlatantV1 = makeCategory(mainPage, "Blatant V1", "💀")
 local savedBlatantV1CompleteDelay = GetConfigValue("BlatantV1.CompleteDelay", 0.05)
 local savedBlatantV1CancelDelay = GetConfigValue("BlatantV1.CancelDelay", 0.1)
 
-task.spawn(function()
+TrackedSpawn(function()
     task.wait(0.5)
     local blatantv1 = GetModule("blatantv1")
     if blatantv1 then
@@ -1786,7 +1802,7 @@ local catUltraBlatant = makeCategory(mainPage, "Blatant V2", "⚡")
 local savedUltraBlatantCompleteDelay = GetConfigValue("UltraBlatant.CompleteDelay", 0.05)
 local savedUltraBlatantCancelDelay = GetConfigValue("UltraBlatant.CancelDelay", 0.1)
 
-task.spawn(function()
+TrackedSpawn(function()
     task.wait(0.5)
     local UltraBlatant = GetModule("UltraBlatant")
     if UltraBlatant then
@@ -1986,7 +2002,7 @@ if AutoFavorite then
         SaveCurrentConfig() 
     end)
     
-    task.spawn(function()
+    TrackedSpawn(function()
         task.wait(0.5)
         tierSys.SelectSpecific(GetConfigValue("AutoFavorite.EnabledTiers", {}))
         varSys.SelectSpecific(GetConfigValue("AutoFavorite.EnabledVariants", {}))
@@ -2113,7 +2129,7 @@ end
 
 -- Player Teleport (Optimized with cleanup)
 local playerDropdown
-local playerListUpdateConnection
+local playerUpdateTask = nil
 
 local function updatePlayerList()
     local playerItems = {}
@@ -2126,6 +2142,7 @@ local function updatePlayerList()
     
     if #playerItems == 0 then playerItems = {"No other players"} end
     
+    -- Destroy old dropdown properly
     if playerDropdown and playerDropdown.Parent then 
         playerDropdown:Destroy() 
         playerDropdown = nil
@@ -2142,19 +2159,19 @@ end
 
 updatePlayerList()
 
--- Cleanup old connections before creating new ones
-if playerListUpdateConnection then
-    ConnectionManager:Add(playerListUpdateConnection)
-end
-
+-- Register connections properly
 ConnectionManager:Add(Players.PlayerAdded:Connect(function()
-    task.wait(0.5)
-    updatePlayerList()
+    if playerUpdateTask then
+        task.cancel(playerUpdateTask)
+    end
+    playerUpdateTask = task.delay(0.5, updatePlayerList)
 end))
 
 ConnectionManager:Add(Players.PlayerRemoving:Connect(function()
-    task.wait(0.1)
-    updatePlayerList()
+    if playerUpdateTask then
+        task.cancel(playerUpdateTask)
+    end
+    playerUpdateTask = task.delay(0.1, updatePlayerList)
 end))
 
 -- Saved Location
@@ -2612,7 +2629,7 @@ ToggleReferences.Webhook = makeToggle(catWebhook, "Enable Webhook" .. (not isWeb
     if not isWebhookSupported then
         SendNotification("Error", "Webhook not supported on this executor!", 3)
         if ToggleReferences.Webhook then
-            task.spawn(function()
+            TrackedSpawn(function()
                 task.wait(0.1)
                 ToggleReferences.Webhook.setOn(false, true)
             end)
@@ -2632,7 +2649,7 @@ ToggleReferences.Webhook = makeToggle(catWebhook, "Enable Webhook" .. (not isWeb
         if currentWebhookURL == "" then
             SendNotification("Error", "Masukkan Webhook URL dulu!", 3)
             if ToggleReferences.Webhook then
-                task.spawn(function()
+                TrackedSpawn(function()
                     task.wait(0.1)
                     ToggleReferences.Webhook.setOn(false, true)
                 end)
@@ -2659,7 +2676,7 @@ ToggleReferences.Webhook = makeToggle(catWebhook, "Enable Webhook" .. (not isWeb
         else
             SendNotification("Error", "Failed to start webhook!", 3)
             if ToggleReferences.Webhook then
-                task.spawn(function()
+                TrackedSpawn(function()
                     task.wait(0.1)
                     ToggleReferences.Webhook.setOn(false, true)
                 end)
@@ -2673,7 +2690,7 @@ end)
 
 -- Auto-disable if not supported
 if not isWebhookSupported then
-    task.spawn(function()
+    TrackedSpawn(function()
         task.wait(0.5)
         if ToggleReferences.Webhook then
             ToggleReferences.Webhook.setOn(false, true)
@@ -3034,7 +3051,7 @@ makeButton(catConfig, "🗑️ Delete Config File", function()
     end
 end)
 
-task.spawn(function()
+TrackedSpawn(function()
     task.wait(1)
     pcall(function()
         if ConfigSystem and configStatusText and configStatusText.Parent then
@@ -3126,7 +3143,7 @@ local moduleStatusText = new("TextLabel", {
     ZIndex = 7
 })
 
-task.spawn(function()
+TrackedSpawn(function()
     task.wait(0.5)
     pcall(function()
         if moduleStatusText and moduleStatusText.Parent then
@@ -3275,9 +3292,20 @@ ConnectionManager:Add(UserInputService.InputEnded:Connect(function(input)
 end))
 
 -- ============================================
--- OPENING ANIMATION
+-- TASK TRACKING SYSTEM (MUST BE BEFORE ANY task.spawn!)
 -- ============================================
-task.spawn(function()
+local RunningTasks = {}
+
+local function TrackedSpawn(func)
+    local thread = task.spawn(func)
+    table.insert(RunningTasks, thread)
+    return thread
+end
+
+-- ============================================
+-- OPENING ANIMATION (NOW USING TrackedSpawn!)
+-- ============================================
+TrackedSpawn(function()
     win.Size = UDim2.new(0, 0, 0, 0)
     win.Position = UDim2.new(0.5, -windowSize.X.Offset/2, 0.5, -windowSize.Y.Offset/2)
     win.BackgroundTransparency = 1
@@ -3302,107 +3330,53 @@ end)
 -- Config Loading & Module Startup System (Baris 3601-4200)
 
 -- ============================================
--- APPLY CONFIG ON STARTUP (Optimized)
+-- APPLY CONFIG ON STARTUP (Memory Optimized)
 -- ============================================
 local function ApplyLoadedConfig()
     if not ConfigSystem then return end
     
-    task.spawn(function()
+    -- Use single spawn instead of multiple
+    TrackedSpawn(function()
         task.wait(0.5)
         
-        -- Main Page - Auto Fishing
-        if ToggleReferences.InstantFishing then
-            local enabled = GetConfigValue("InstantFishing.Enabled", false)
-            ToggleReferences.InstantFishing.setOn(enabled, true)
-            isInstantFishingEnabled = enabled
-        end
+        -- Apply all toggles in one batch
+        local toggleConfigs = {
+            {ref = "InstantFishing", path = "InstantFishing.Enabled", default = false},
+            {ref = "BlatantTester", path = "BlatantTester.Enabled", default = false},
+            {ref = "BlatantV1", path = "BlatantV1.Enabled", default = false},
+            {ref = "UltraBlatant", path = "UltraBlatant.Enabled", default = false},
+            {ref = "FastAutoPerfect", path = "FastAutoPerfect.Enabled", default = false},
+            {ref = "NoFishingAnimation", path = "Support.NoFishingAnimation", default = false},
+            {ref = "LockPosition", path = "Support.LockPosition", default = false},
+            {ref = "AutoEquipRod", path = "Support.AutoEquipRod", default = false},
+            {ref = "DisableCutscenes", path = "Support.DisableCutscenes", default = false},
+            {ref = "DisableObtainedNotif", path = "Support.DisableObtainedNotif", default = false},
+            {ref = "DisableSkinEffect", path = "Support.DisableSkinEffect", default = false},
+            {ref = "WalkOnWater", path = "Support.WalkOnWater", default = false},
+            {ref = "GoodPerfectionStable", path = "Support.GoodPerfectionStable", default = false},
+            {ref = "PingFPSMonitor", path = "Support.PingFPSMonitor", default = false},
+            {ref = "AutoTeleportEvent", path = "Teleport.AutoTeleportEvent", default = false},
+            {ref = "AutoSellTimer", path = "Shop.AutoSellTimer.Enabled", default = false},
+            {ref = "AutoBuyWeather", path = "Shop.AutoBuyWeather.Enabled", default = false},
+            {ref = "Webhook", path = "Webhook.Enabled", default = false},
+            {ref = "UnlimitedZoom", path = "CameraView.UnlimitedZoom", default = false},
+            {ref = "Freecam", path = "CameraView.Freecam.Enabled", default = false},
+            {ref = "AntiAFK", path = "Settings.AntiAFK", default = false},
+            {ref = "FPSBooster", path = "Settings.FPSBooster", default = false},
+            {ref = "DisableRendering", path = "Settings.DisableRendering", default = false},
+            {ref = "HideStats", path = "Settings.HideStats.Enabled", default = false},
+        }
         
-        -- Blatant Modes
-        if ToggleReferences.BlatantTester then
-            ToggleReferences.BlatantTester.setOn(GetConfigValue("BlatantTester.Enabled", false), true)
-        end
-        if ToggleReferences.BlatantV1 then
-            ToggleReferences.BlatantV1.setOn(GetConfigValue("BlatantV1.Enabled", false), true)
-        end
-        if ToggleReferences.UltraBlatant then
-            ToggleReferences.UltraBlatant.setOn(GetConfigValue("UltraBlatant.Enabled", false), true)
-        end
-        if ToggleReferences.FastAutoPerfect then
-            ToggleReferences.FastAutoPerfect.setOn(GetConfigValue("FastAutoPerfect.Enabled", false), true)
-        end
-        
-        -- Support Features
-        if ToggleReferences.NoFishingAnimation then
-            ToggleReferences.NoFishingAnimation.setOn(GetConfigValue("Support.NoFishingAnimation", false), true)
-        end
-        if ToggleReferences.LockPosition then
-            ToggleReferences.LockPosition.setOn(GetConfigValue("Support.LockPosition", false), true)
-        end
-        if ToggleReferences.AutoEquipRod then
-            ToggleReferences.AutoEquipRod.setOn(GetConfigValue("Support.AutoEquipRod", false), true)
-        end
-        if ToggleReferences.DisableCutscenes then
-            ToggleReferences.DisableCutscenes.setOn(GetConfigValue("Support.DisableCutscenes", false), true)
-        end
-        if ToggleReferences.DisableObtainedNotif then
-            ToggleReferences.DisableObtainedNotif.setOn(GetConfigValue("Support.DisableObtainedNotif", false), true)
-        end
-        if ToggleReferences.DisableSkinEffect then
-            ToggleReferences.DisableSkinEffect.setOn(GetConfigValue("Support.DisableSkinEffect", false), true)
-        end
-        if ToggleReferences.WalkOnWater then
-            ToggleReferences.WalkOnWater.setOn(GetConfigValue("Support.WalkOnWater", false), true)
-        end
-        if ToggleReferences.GoodPerfectionStable then
-            ToggleReferences.GoodPerfectionStable.setOn(GetConfigValue("Support.GoodPerfectionStable", false), true)
-        end
-        if ToggleReferences.PingFPSMonitor then
-            ToggleReferences.PingFPSMonitor.setOn(GetConfigValue("Support.PingFPSMonitor", false), true)
-        end
-        
-        -- Teleport
-        if ToggleReferences.AutoTeleportEvent then
-            ToggleReferences.AutoTeleportEvent.setOn(GetConfigValue("Teleport.AutoTeleportEvent", false), true)
-        end
-        
-        -- Shop
-        if ToggleReferences.AutoSellTimer then
-            ToggleReferences.AutoSellTimer.setOn(GetConfigValue("Shop.AutoSellTimer.Enabled", false), true)
-        end
-        if ToggleReferences.AutoBuyWeather then
-            ToggleReferences.AutoBuyWeather.setOn(GetConfigValue("Shop.AutoBuyWeather.Enabled", false), true)
-        end
-        
-        -- Webhook
-        if ToggleReferences.Webhook then
-            ToggleReferences.Webhook.setOn(GetConfigValue("Webhook.Enabled", false), true)
-        end
-        
-        -- Camera View
-        if ToggleReferences.UnlimitedZoom then
-            ToggleReferences.UnlimitedZoom.setOn(GetConfigValue("CameraView.UnlimitedZoom", false), true)
-        end
-        if ToggleReferences.Freecam then
-            ToggleReferences.Freecam.setOn(GetConfigValue("CameraView.Freecam.Enabled", false), true)
-        end
-        
-        -- Settings
-        if ToggleReferences.AntiAFK then
-            ToggleReferences.AntiAFK.setOn(GetConfigValue("Settings.AntiAFK", false), true)
-        end
-        if ToggleReferences.FPSBooster then
-            ToggleReferences.FPSBooster.setOn(GetConfigValue("Settings.FPSBooster", false), true)
-        end
-        if ToggleReferences.DisableRendering then
-            ToggleReferences.DisableRendering.setOn(GetConfigValue("Settings.DisableRendering", false), true)
-        end
-        if ToggleReferences.HideStats then
-            ToggleReferences.HideStats.setOn(GetConfigValue("Settings.HideStats.Enabled", false), true)
+        for _, config in ipairs(toggleConfigs) do
+            if ToggleReferences[config.ref] then
+                local value = GetConfigValue(config.path, config.default)
+                ToggleReferences[config.ref].setOn(value, true)
+            end
         end
     end)
-
-    -- Start Modules Based on Config
-    task.spawn(function()
+    
+    -- Start modules in separate spawn
+    TrackedSpawn(function()
         task.wait(1)
         
         -- Auto Fishing
@@ -3590,7 +3564,7 @@ local function ApplyLoadedConfig()
 end
 
 -- Apply Config on Startup
-task.spawn(function()
+TrackedSpawn(function()
     task.wait(1.5)
     pcall(function()
         ApplyLoadedConfig()
@@ -3612,7 +3586,7 @@ if isMobile or UserInputService:GetPlatform() == Enum.Platform.Android or UserIn
         end
     end
     
-    task.spawn(function()
+    TrackedSpawn(function()
         task.wait(2)
         disableAnimations(gui)
     end)
@@ -3644,54 +3618,82 @@ end
 -- GUI CLEANUP & DESTROY HANDLER
 -- ============================================
 
--- Cleanup function to prevent memory leaks
 local function CleanupGUI()
     print("🧹 Cleaning up LynxGUI...")
     
-    -- Stop all active modules
+    -- 1. Cancel all running tasks
+    for i = #RunningTasks, 1, -1 do
+        local thread = RunningTasks[i]
+        if thread then
+            pcall(function() task.cancel(thread) end)
+        end
+        RunningTasks[i] = nil
+    end
+    table.clear(RunningTasks)
+    
+    -- 2. Cancel player update task
+    if playerUpdateTask then
+        task.cancel(playerUpdateTask)
+        playerUpdateTask = nil
+    end
+    
+    -- 3. Stop all active modules
     for name, module in pairs(Modules) do
         if module and type(module) == "table" then
             if module.Stop then
                 pcall(function() module.Stop() end)
             end
+            -- Clear module reference
+            Modules[name] = nil
         end
     end
     
-    -- Cleanup all connections and tweens
+    -- 4. Cleanup all connections and tweens
     ConnectionManager:Cleanup()
     
-    -- Clear module references
+    -- 5. Destroy dropdown references
+    if playerDropdown and playerDropdown.Parent then
+        playerDropdown:Destroy()
+        playerDropdown = nil
+    end
+    
+    -- 6. Clear all tables
     table.clear(Modules)
     table.clear(ModuleStatus)
     table.clear(ToggleReferences)
     table.clear(pages)
     table.clear(navButtons)
+    table.clear(failedModules)
     
-    -- Clear config references
+    -- 7. Clear config references
     currentWebhookURL = nil
     currentDiscordID = nil
     currentFakeName = nil
     currentFakeLevel = nil
     
-    -- Destroy GUI
+    -- 8. Destroy GUI
     if gui then
         gui:Destroy()
         gui = nil
     end
     
-    -- Clear minimized icon
+    -- 9. Clear minimized icon
     if icon then
         icon:Destroy()
         icon = nil
     end
     
+    -- 10. Clear global references
+    _G.LynxGUI = nil
+    
+    -- 11. Force garbage collection
+    for i = 1, 3 do
+        pcall(function() collectgarbage("collect") end)
+        task.wait(0.1)
+    end
+    
     print("✅ LynxGUI cleanup complete!")
 end
-
--- Register cleanup on GUI destroy
-ConnectionManager:Add(gui.Destroying:Connect(function()
-    CleanupGUI()
-end))
 
 -- ============================================
 -- MEMORY MONITOR (Debug Mode)
@@ -3741,7 +3743,7 @@ local function isLowEndDevice()
 end
 
 -- Apply low-end optimizations if needed
-task.spawn(function()
+TrackedSpawn(function()
     task.wait(2)
     
     local lowEnd = isLowEndDevice()
@@ -4307,7 +4309,7 @@ print([[
 -- ============================================
 -- FINAL MEMORY USAGE REPORT
 -- ============================================
-task.spawn(function()
+TrackedSpawn(function()
     task.wait(3)
     
     local stats = game:GetService("Stats")
