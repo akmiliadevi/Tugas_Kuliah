@@ -1,5 +1,5 @@
--- ============================================
--- AUTO FAVORITE SYSTEM (MEMORY SAFE)
+-- ============================================efdef
+-- AUTO FAVORITE SYSTEM (MEMORY SAFE & IMPROVED)
 -- ============================================
 
 local AutoFavorite = {}
@@ -26,19 +26,51 @@ local activeConnections = {}
 -- Get required services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Get favorite event
-local FavoriteEvent = ReplicatedStorage:WaitForChild("Packages")
-    :WaitForChild("_Index")
-    :WaitForChild("sleitnick_net@0.2.0")
-    :WaitForChild("net")
-    :WaitForChild("RE/FavoriteItem")
+-- Safe service getter with retries
+local function GetServiceSafe(path, maxRetries)
+    maxRetries = maxRetries or 5
+    local current = ReplicatedStorage
+    
+    for _, childName in ipairs(path) do
+        local attempts = 0
+        local child = nil
+        
+        while attempts < maxRetries do
+            child = current:FindFirstChild(childName)
+            if child then break end
+            attempts = attempts + 1
+            task.wait(0.2)
+        end
+        
+        if not child then
+            warn(string.format("⚠️ AutoFavorite: Failed to find '%s' after %d attempts", childName, maxRetries))
+            return nil
+        end
+        
+        current = child
+    end
+    
+    return current
+end
 
--- Get notification event
-local NotificationEvent = ReplicatedStorage:WaitForChild("Packages")
-    :WaitForChild("_Index")
-    :WaitForChild("sleitnick_net@0.2.0")
-    :WaitForChild("net")
-    :WaitForChild("RE/ObtainedNewFishNotification")
+-- Get favorite event with error handling
+local FavoriteEvent = GetServiceSafe({
+    "Packages", "_Index", "sleitnick_net@0.2.0", "net", "RE/FavoriteItem"
+})
+
+-- Get notification event with error handling
+local NotificationEvent = GetServiceSafe({
+    "Packages", "_Index", "sleitnick_net@0.2.0", "net", "RE/ObtainedNewFishNotification"
+})
+
+-- Check if services loaded
+if not FavoriteEvent then
+    error("❌ AutoFavorite: FavoriteEvent not found!")
+end
+
+if not NotificationEvent then
+    error("❌ AutoFavorite: NotificationEvent not found!")
+end
 
 -- Get fish data helper (cached)
 local itemsModule = require(ReplicatedStorage:WaitForChild("Items"))
@@ -104,20 +136,58 @@ function AutoFavorite.EnableTiers(selectedTiers)
             AUTO_FAVORITE_TIERS[tier] = true
         end
     end
+    print(string.format("✓ AutoFavorite: Enabled %d tier(s)", #selectedTiers))
 end
 
 function AutoFavorite.ClearTiers()
     table.clear(AUTO_FAVORITE_TIERS)
+    print("✓ AutoFavorite: Cleared tier filter")
 end
 
 function AutoFavorite.EnableVariants(selectedVariants)
     for _, variantName in ipairs(selectedVariants) do
         AUTO_FAVORITE_VARIANTS[variantName] = true
     end
+    print(string.format("✓ AutoFavorite: Enabled %d variant(s)", #selectedVariants))
 end
 
 function AutoFavorite.ClearVariants()
     table.clear(AUTO_FAVORITE_VARIANTS)
+    print("✓ AutoFavorite: Cleared variant filter")
+end
+
+function AutoFavorite.GetEnabledTiers()
+    local enabled = {}
+    for tier, _ in pairs(AUTO_FAVORITE_TIERS) do
+        for name, id in pairs(TIER_MAP) do
+            if id == tier then
+                table.insert(enabled, name)
+                break
+            end
+        end
+    end
+    return enabled
+end
+
+function AutoFavorite.GetEnabledVariants()
+    local enabled = {}
+    for variant, _ in pairs(AUTO_FAVORITE_VARIANTS) do
+        table.insert(enabled, variant)
+    end
+    return enabled
+end
+
+function AutoFavorite.IsEnabled()
+    return AUTO_FAVORITE_ENABLED
+end
+
+function AutoFavorite.GetStatus()
+    return {
+        enabled = AUTO_FAVORITE_ENABLED,
+        tierCount = #AutoFavorite.GetEnabledTiers(),
+        variantCount = #AutoFavorite.GetEnabledVariants(),
+        hasFilters = next(AUTO_FAVORITE_TIERS) ~= nil or next(AUTO_FAVORITE_VARIANTS) ~= nil
+    }
 end
 
 -- ============================================
@@ -126,8 +196,8 @@ end
 
 local function disconnectAll()
     for _, conn in pairs(activeConnections) do
-        if conn and conn.Connected then
-            conn:Disconnect()
+        if conn and typeof(conn) == "RBXScriptConnection" and conn.Connected then
+            pcall(function() conn:Disconnect() end)
         end
     end
     table.clear(activeConnections)
@@ -136,6 +206,12 @@ end
 function AutoFavorite:Start()
     -- Disconnect existing connections first
     disconnectAll()
+    
+    -- Check if filters are set
+    if not next(AUTO_FAVORITE_TIERS) and not next(AUTO_FAVORITE_VARIANTS) then
+        warn("⚠️ AutoFavorite: No filters enabled! Please select at least one tier or variant.")
+        return false
+    end
     
     AUTO_FAVORITE_ENABLED = true
     
@@ -189,11 +265,18 @@ function AutoFavorite:Start()
     
     -- Store connection
     table.insert(activeConnections, connection)
+    
+    local status = AutoFavorite.GetStatus()
+    print(string.format("✅ AutoFavorite: Started (Tiers: %d, Variants: %d)", 
+        status.tierCount, status.variantCount))
+    
+    return true
 end
 
 function AutoFavorite:Stop()
     AUTO_FAVORITE_ENABLED = false
     disconnectAll()
+    print("✓ AutoFavorite: Stopped")
 end
 
 -- ============================================
@@ -212,5 +295,16 @@ end
 if game then
     game:BindToClose(cleanup)
 end
+
+-- ============================================
+-- MODULE VALIDATION
+-- ============================================
+
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("✅ AutoFavorite Module Loaded")
+print("   Version: 1.1.0 (Fixed)")
+print("   Tiers Available: " .. #AutoFavorite.GetAllTiers())
+print("   Variants Available: " .. #AutoFavorite.GetAllVariants())
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 return AutoFavorite
