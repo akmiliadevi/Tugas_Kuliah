@@ -1,4 +1,4 @@
--- ConfigSystem.lua
+-- ConfigSystem.luaaaa
 -- Auto Save/Load Configuration System for Lynx GUI
 -- FREE NOT FOR SALE
 
