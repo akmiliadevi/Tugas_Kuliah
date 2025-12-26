@@ -1670,7 +1670,7 @@ end)
 makeDropdown(catAutoFishing, "Instant Fishing Mode", "⚡", {"Fast", "Perfect"}, function(mode)
     currentInstantMode = mode
     SetConfigValue("InstantFishing.Mode", mode)
-    -- SaveCurrentConfig()
+    
     
     local instant = GetModule("instant")
     local instant2 = GetModule("instant2")
@@ -1696,7 +1696,7 @@ end, "InstantFishingMode", savedInstantMode)
 ToggleReferences.InstantFishing = makeToggle(catAutoFishing, "Enable Instant Fishing", function(on)
     isInstantFishingEnabled = on
     SetConfigValue("InstantFishing.Enabled", on)
-    -- SaveCurrentConfig()
+    
     
     local instant = GetModule("instant")
     local instant2 = GetModule("instant2")
@@ -1727,7 +1727,7 @@ end)
 makeInput(catAutoFishing, "Fishing Delay", savedFishingDelay, function(v)
     fishingDelayValue = v
     SetConfigValue("InstantFishing.FishingDelay", v)
-    -- SaveCurrentConfig()
+    
     
     local instant = GetModule("instant")
     local instant2 = GetModule("instant2")
@@ -1738,7 +1738,7 @@ end)
 makeInput(catAutoFishing, "Cancel Delay", savedCancelDelay, function(v)
     cancelDelayValue = v
     SetConfigValue("InstantFishing.CancelDelay", v)
-    -- SaveCurrentConfig()
+    
     
     local instant = GetModule("instant")
     local instant2 = GetModule("instant2")
@@ -1767,7 +1767,7 @@ end)
 
 ToggleReferences.BlatantTester = makeToggle(catBlatantV2, "Blatant Tester", function(on)
     SetConfigValue("BlatantTester.Enabled", on)
-    -- SaveCurrentConfig()
+    
     local blatantv2fix = GetModule("blatantv2fix")
     if blatantv2fix then
         if on then blatantv2fix.Start() else blatantv2fix.Stop() end
@@ -1776,14 +1776,14 @@ end)
 
 makeInput(catBlatantV2, "Complete Delay", savedBlatantTesterCompleteDelay, function(v)
     SetConfigValue("BlatantTester.CompleteDelay", v)
-    -- SaveCurrentConfig()
+    
     local blatantv2fix = GetModule("blatantv2fix")
     if blatantv2fix then blatantv2fix.Settings.CompleteDelay = v end
 end)
 
 makeInput(catBlatantV2, "Cancel Delay", savedBlatantTesterCancelDelay, function(v)
     SetConfigValue("BlatantTester.CancelDelay", v)
-    -- SaveCurrentConfig()
+    
     local blatantv2fix = GetModule("blatantv2fix")
     if blatantv2fix then blatantv2fix.Settings.CancelDelay = v end
 end)
@@ -1808,7 +1808,7 @@ end)
 
 ToggleReferences.BlatantV1 = makeToggle(catBlatantV1, "Blatant Mode", function(on)
     SetConfigValue("BlatantV1.Enabled", on)
-    -- SaveCurrentConfig()
+    
     local blatantv1 = GetModule("blatantv1")
     if blatantv1 then
         if on then blatantv1.Start() else blatantv1.Stop() end
@@ -1817,14 +1817,14 @@ end)
 
 makeInput(catBlatantV1, "Complete Delay", savedBlatantV1CompleteDelay, function(v)
     SetConfigValue("BlatantV1.CompleteDelay", v)
-    -- SaveCurrentConfig()
+    
     local blatantv1 = GetModule("blatantv1")
     if blatantv1 then blatantv1.Settings.CompleteDelay = v end
 end)
 
 makeInput(catBlatantV1, "Cancel Delay", savedBlatantV1CancelDelay, function(v)
     SetConfigValue("BlatantV1.CancelDelay", v)
-    -- SaveCurrentConfig()
+    
     local blatantv1 = GetModule("blatantv1")
     if blatantv1 then blatantv1.Settings.CancelDelay = v end
 end)
@@ -1850,7 +1850,7 @@ end)
 
 ToggleReferences.UltraBlatant = makeToggle(catUltraBlatant, "Blatant Mode", function(on)
     SetConfigValue("UltraBlatant.Enabled", on)
-    -- SaveCurrentConfig()
+    
     local UltraBlatant = GetModule("UltraBlatant")
     if UltraBlatant then
         if on then UltraBlatant.Start() else UltraBlatant.Stop() end
@@ -1859,7 +1859,7 @@ end)
 
 makeInput(catUltraBlatant, "Complete Delay", savedUltraBlatantCompleteDelay, function(v)
     SetConfigValue("UltraBlatant.CompleteDelay", v)
-    -- SaveCurrentConfig()
+    
     local UltraBlatant = GetModule("UltraBlatant")
     if UltraBlatant then
         if UltraBlatant.Settings then
@@ -1872,7 +1872,7 @@ end)
 
 makeInput(catUltraBlatant, "Cancel Delay", savedUltraBlatantCancelDelay, function(v)
     SetConfigValue("UltraBlatant.CancelDelay", v)
-    -- SaveCurrentConfig()
+    
     local UltraBlatant = GetModule("UltraBlatant")
     if UltraBlatant then
         if UltraBlatant.Settings then
@@ -1888,7 +1888,7 @@ local catBlatantV2Fast = makeCategory(mainPage, "Fast Auto Fishing Perfect", "�
 
 ToggleReferences.FastAutoPerfect = makeToggle(catBlatantV2Fast, "Fast Fishing Features", function(on)
     SetConfigValue("FastAutoPerfect.Enabled", on)
-    -- SaveCurrentConfig()
+    
     local blatantv2 = GetModule("blatantv2")
     if blatantv2 then
         if on then blatantv2.Start() else blatantv2.Stop() end
@@ -1897,21 +1897,21 @@ end)
 
 makeInput(catBlatantV2Fast, "Fishing Delay", GetConfigValue("FastAutoPerfect.FishingDelay", 0.05), function(v)
     SetConfigValue("FastAutoPerfect.FishingDelay", v)
-    -- SaveCurrentConfig()
+    
     local blatantv2 = GetModule("blatantv2")
     if blatantv2 then blatantv2.Settings.FishingDelay = v end
 end)
 
 makeInput(catBlatantV2Fast, "Cancel Delay", GetConfigValue("FastAutoPerfect.CancelDelay", 0.01), function(v)
     SetConfigValue("FastAutoPerfect.CancelDelay", v)
-    -- SaveCurrentConfig()
+    
     local blatantv2 = GetModule("blatantv2")
     if blatantv2 then blatantv2.Settings.CancelDelay = v end
 end)
 
 makeInput(catBlatantV2Fast, "Timeout Delay", GetConfigValue("FastAutoPerfect.TimeoutDelay", 0.8), function(v)
     SetConfigValue("FastAutoPerfect.TimeoutDelay", v)
-    -- SaveCurrentConfig()
+    
     local blatantv2 = GetModule("blatantv2")
     if blatantv2 then blatantv2.Settings.TimeoutDelay = v end
 end)
@@ -1923,7 +1923,7 @@ local catSupport = makeCategory(mainPage, "Support Features", "🛠️")
 
 ToggleReferences.NoFishingAnimation = makeToggle(catSupport, "No Fishing Animation", function(on)
     SetConfigValue("Support.NoFishingAnimation", on)
-    -- SaveCurrentConfig()
+    
     local NoFishingAnimation = GetModule("NoFishingAnimation")
     if NoFishingAnimation then
         if on then NoFishingAnimation.StartWithDelay() else NoFishingAnimation.Stop() end
@@ -1932,7 +1932,7 @@ end)
 
 ToggleReferences.PingFPSMonitor = makeToggle(catSupport, "Ping & FPS Monitor", function(on)
     SetConfigValue("Support.PingFPSMonitor", on)
-    -- SaveCurrentConfig()
+    
     local PingFPSMonitor = GetModule("PingFPSMonitor")
     if PingFPSMonitor then
         if on then 
@@ -1945,7 +1945,7 @@ end)
 
 ToggleReferences.LockPosition = makeToggle(catSupport, "Lock Position", function(on)
     SetConfigValue("Support.LockPosition", on)
-    -- SaveCurrentConfig()
+    
     local LockPosition = GetModule("LockPosition")
     if LockPosition then
         if on then LockPosition.Start() else LockPosition.Stop() end
@@ -1954,7 +1954,7 @@ end)
 
 ToggleReferences.AutoEquipRod = makeToggle(catSupport, "Auto Equip Rod", function(on)
     SetConfigValue("Support.AutoEquipRod", on)
-    -- SaveCurrentConfig()
+    
     local AutoEquipRod = GetModule("AutoEquipRod")
     if AutoEquipRod then
         if on then AutoEquipRod.Start() else AutoEquipRod.Stop() end
@@ -1963,7 +1963,7 @@ end)
 
 ToggleReferences.DisableCutscenes = makeToggle(catSupport, "Disable Cutscenes", function(on)
     SetConfigValue("Support.DisableCutscenes", on)
-    -- SaveCurrentConfig()
+    
     local DisableCutscenes = GetModule("DisableCutscenes")
     if DisableCutscenes then
         if on then DisableCutscenes.Start() else DisableCutscenes.Stop() end
@@ -1972,7 +1972,7 @@ end)
 
 ToggleReferences.DisableObtainedNotif = makeToggle(catSupport, "Disable Obtained Fish Notification", function(on)
     SetConfigValue("Support.DisableObtainedNotif", on)
-    -- SaveCurrentConfig()
+    
     local DisableExtras = GetModule("DisableExtras")
     if DisableExtras then
         if on then DisableExtras.StartSmallNotification() else DisableExtras.StopSmallNotification() end
@@ -1981,7 +1981,7 @@ end)
 
 ToggleReferences.DisableSkinEffect = makeToggle(catSupport, "Disable Skin Effect", function(on)
     SetConfigValue("Support.DisableSkinEffect", on)
-    -- SaveCurrentConfig()
+    
     local DisableExtras = GetModule("DisableExtras")
     if DisableExtras then
         if on then DisableExtras.StartSkinEffect() else DisableExtras.StopSkinEffect() end
@@ -1990,7 +1990,7 @@ end)
 
 ToggleReferences.WalkOnWater = makeToggle(catSupport, "Walk On Water", function(on)
     SetConfigValue("Support.WalkOnWater", on)
-    -- SaveCurrentConfig()
+    
     local WalkOnWater = GetModule("WalkOnWater")
     if WalkOnWater then
         if on then WalkOnWater.Start() else WalkOnWater.Stop() end
@@ -1999,7 +1999,7 @@ end)
 
 ToggleReferences.GoodPerfectionStable = makeToggle(catSupport, "Good/Perfection Stable Mode", function(on)
     SetConfigValue("Support.GoodPerfectionStable", on)
-    -- SaveCurrentConfig()
+    
     local GoodPerfectionStable = GetModule("GoodPerfectionStable")
     if GoodPerfectionStable then
         if on then GoodPerfectionStable.Start() else GoodPerfectionStable.Stop() end
@@ -2025,14 +2025,14 @@ if AutoFavorite then
         AutoFavorite.ClearTiers() 
         AutoFavorite.EnableTiers(sel) 
         SetConfigValue("AutoFavorite.EnabledTiers", sel) 
-        -- SaveCurrentConfig() 
+         
     end)
     
     local varSys = makeCheckboxDropdown(catAutoFav, "Variant Filter", AutoFavorite.GetAllVariants(), nil, function(sel) 
         AutoFavorite.ClearVariants() 
         AutoFavorite.EnableVariants(sel) 
         SetConfigValue("AutoFavorite.EnabledVariants", sel) 
-        -- SaveCurrentConfig() 
+         
     end)
     
     TrackedSpawn(function()
@@ -2072,7 +2072,7 @@ makeButton(catSkin, "⚔️ Eclipse Katana", function()
         local success = SkinAnimation.SwitchSkin("Eclipse")
         if success then
             SetConfigValue("Support.SkinAnimation.Current", "Eclipse")
-            -- SaveCurrentConfig()
+            
             if Notify then Notify.Send("Skin Animation", "⚔️ Eclipse Katana diaktifkan!", 4) end
             if not SkinAnimation.IsEnabled() then SkinAnimation.Enable() end
         elseif Notify then
@@ -2088,7 +2088,7 @@ makeButton(catSkin, "🔱 Holy Trident", function()
         local success = SkinAnimation.SwitchSkin("HolyTrident")
         if success then
             SetConfigValue("Support.SkinAnimation.Current", "HolyTrident")
-            -- SaveCurrentConfig()
+            
             if Notify then Notify.Send("Skin Animation", "🔱 Holy Trident diaktifkan!", 4) end
             if not SkinAnimation.IsEnabled() then SkinAnimation.Enable() end
         elseif Notify then
@@ -2104,7 +2104,7 @@ makeButton(catSkin, "💀 Soul Scythe", function()
         local success = SkinAnimation.SwitchSkin("SoulScythe")
         if success then
             SetConfigValue("Support.SkinAnimation.Current", "SoulScythe")
-            -- SaveCurrentConfig()
+            
             if Notify then Notify.Send("Skin Animation", "💀 Soul Scythe diaktifkan!", 4) end
             if not SkinAnimation.IsEnabled() then SkinAnimation.Enable() end
         elseif Notify then
@@ -2115,7 +2115,7 @@ end)
 
 makeToggle(catSkin, "Enable Skin Animation", function(on)
     SetConfigValue("Support.SkinAnimation.Enabled", on)
-    -- SaveCurrentConfig()
+    
     local SkinAnimation = GetModule("SkinAnimation")
     local Notify = GetModule("Notify")
     if SkinAnimation then
@@ -2248,14 +2248,14 @@ if EventTeleport then
         if selected ~= "- No events available -" then
             selectedEventName = selected
             SetConfigValue("Teleport.LastEventSelected", selected)
-            -- SaveCurrentConfig()
+            
             SendNotification("Event", "Event dipilih: " .. tostring(selected), 3)
         end
     end, "EventTeleport")
     
     ToggleReferences.AutoTeleportEvent = makeToggle(catTeleport, "Enable Auto Teleport", function(on)
         SetConfigValue("Teleport.AutoTeleportEvent", on)
-        -- SaveCurrentConfig()
+        
         
         if on then
             if selectedEventName and selectedEventName ~= "- No events available -" and EventTeleport.HasCoords(selectedEventName) then
@@ -2305,13 +2305,13 @@ local AutoSellTimer = GetModule("AutoSellTimer")
 if AutoSellTimer then
     makeInput(catTimer, "Sell Interval (seconds)", GetConfigValue("Shop.AutoSellTimer.Interval", 5), function(value)
         SetConfigValue("Shop.AutoSellTimer.Interval", value)
-        -- SaveCurrentConfig()
+        
         if AutoSellTimer then pcall(function() AutoSellTimer.SetInterval(value) end) end
     end)
 
     ToggleReferences.AutoSellTimer = makeToggle(catTimer, "Auto Sell Timer", function(on)
         SetConfigValue("Shop.AutoSellTimer.Enabled", on)
-        -- SaveCurrentConfig()
+        
         if AutoSellTimer then
             pcall(function()
                 if on then
@@ -2349,13 +2349,13 @@ if AutoBuyWeather then
         function(selectedWeathers)
             AutoBuyWeather.SetSelected(selectedWeathers)
             SetConfigValue("Shop.AutoBuyWeather.SelectedWeathers", selectedWeathers)
-            -- SaveCurrentConfig()
+            
         end
     )
     
     ToggleReferences.AutoBuyWeather = makeToggle(catWeather, "Enable Auto Weather", function(on)
         SetConfigValue("Shop.AutoBuyWeather.Enabled", on)
-        -- SaveCurrentConfig()
+        
         
         if on then
             local selected = weatherCheckboxSystem.GetSelected()
@@ -2560,7 +2560,7 @@ if isWebhookSupported then
     ConnectionManager:Add(webhookTextBox.FocusLost:Connect(function()
         currentWebhookURL = webhookTextBox.Text
         SetConfigValue("Webhook.URL", currentWebhookURL)
-        -- SaveCurrentConfig()
+        
         
         if WebhookModule and currentWebhookURL ~= "" then
             pcall(function() WebhookModule:SetWebhookURL(currentWebhookURL) end)
@@ -2621,7 +2621,7 @@ if isWebhookSupported then
     ConnectionManager:Add(discordIDTextBox.FocusLost:Connect(function()
         currentDiscordID = discordIDTextBox.Text
         SetConfigValue("Webhook.DiscordID", currentDiscordID)
-        -- SaveCurrentConfig()
+        
         
         if WebhookModule then
             pcall(function() WebhookModule:SetDiscordUserID(currentDiscordID) end)
@@ -2653,7 +2653,7 @@ local rarityCheckboxSystem = makeCheckboxList(
             pcall(function() WebhookModule:SetEnabledRarities(selectedRarities) end)
         end
         SetConfigValue("Webhook.EnabledRarities", selectedRarities)
-        -- SaveCurrentConfig()
+        
     end
 )
 
@@ -2671,7 +2671,7 @@ ToggleReferences.Webhook = makeToggle(catWebhook, "Enable Webhook" .. (not isWeb
     end
     
     SetConfigValue("Webhook.Enabled", on)
-    -- SaveCurrentConfig()
+    
     
     if not WebhookModule then
         SendNotification("Error", "Webhook module tidak tersedia!", 3)
@@ -2739,7 +2739,7 @@ local UnlimitedZoomModule = GetModule("UnlimitedZoomModule")
 
 ToggleReferences.UnlimitedZoom = makeToggle(catZoom, "Enable Unlimited Zoom", function(on)
     SetConfigValue("CameraView.UnlimitedZoom", on)
-    -- SaveCurrentConfig()
+    
     
     if UnlimitedZoomModule then
         if on then
@@ -2757,7 +2757,7 @@ local FreecamModule = GetModule("FreecamModule")
 
 ToggleReferences.Freecam = makeToggle(catFreecam, "Enable Freecam", function(on)
     SetConfigValue("CameraView.Freecam.Enabled", on)
-    -- SaveCurrentConfig()
+    
     
     if FreecamModule then
         if on then
@@ -2777,13 +2777,13 @@ end)
 
 makeInput(catFreecam, "Movement Speed", GetConfigValue("CameraView.Freecam.Speed", 50), function(value)
     SetConfigValue("CameraView.Freecam.Speed", value)
-    -- SaveCurrentConfig()
+    
     if FreecamModule then FreecamModule.SetSpeed(value) end
 end)
 
 makeInput(catFreecam, "Mouse Sensitivity", GetConfigValue("CameraView.Freecam.Sensitivity", 0.3), function(value)
     SetConfigValue("CameraView.Freecam.Sensitivity", value)
-    -- SaveCurrentConfig()
+    
     if FreecamModule then FreecamModule.SetSensitivity(value) end
 end)
 
@@ -2798,7 +2798,7 @@ local AntiAFK = GetModule("AntiAFK")
 
 ToggleReferences.AntiAFK = makeToggle(catAFK, "Enable Anti-AFK", function(on)
     SetConfigValue("Settings.AntiAFK", on)
-    -- SaveCurrentConfig()
+    
     if AntiAFK then
         if on then AntiAFK.Start() else AntiAFK.Stop() end
     end
@@ -2843,7 +2843,7 @@ local DisableRenderingModule = GetModule("DisableRendering")
 
 ToggleReferences.FPSBooster = makeToggle(catBoost, "Enable FPS Booster", function(on)
     SetConfigValue("Settings.FPSBooster", on)
-    -- SaveCurrentConfig()
+    
     
     if FPSBooster then
         if on then
@@ -2858,7 +2858,7 @@ end)
 
 ToggleReferences.DisableRendering = makeToggle(catBoost, "Disable 3D Rendering", function(on)
     SetConfigValue("Settings.DisableRendering", on)
-    -- SaveCurrentConfig()
+    
     
     if DisableRenderingModule then
         if on then DisableRenderingModule.Start() else DisableRenderingModule.Stop() end
@@ -2871,7 +2871,7 @@ local UnlockFPS = GetModule("UnlockFPS")
 makeDropdown(catFPS, "Select FPS Limit", "⚙️", {"60 FPS", "90 FPS", "120 FPS", "240 FPS"}, function(selected)
     local fpsValue = tonumber(selected:match("%d+"))
     SetConfigValue("Settings.FPSLimit", fpsValue)
-    -- SaveCurrentConfig()
+    
     if fpsValue and UnlockFPS then UnlockFPS.SetCap(fpsValue) end
 end, "FPSDropdown")
 
@@ -2933,7 +2933,7 @@ ConnectionManager:Add(fakeNameTextBox.FocusLost:Connect(function()
     if value and value ~= "" then
         currentFakeName = value
         SetConfigValue("Settings.HideStats.FakeName", value)
-        -- SaveCurrentConfig()
+        
         if HideStats then
             pcall(function() HideStats.SetFakeName(value) end)
             SendNotification("Hide Stats", "Fake name set: " .. value, 2)
@@ -2993,7 +2993,7 @@ ConnectionManager:Add(fakeLevelTextBox.FocusLost:Connect(function()
     if value and value ~= "" then
         currentFakeLevel = value
         SetConfigValue("Settings.HideStats.FakeLevel", value)
-        -- SaveCurrentConfig()
+        
         if HideStats then
             pcall(function() HideStats.SetFakeLevel(value) end)
             SendNotification("Hide Stats", "Fake level set: " .. value, 2)
@@ -3003,7 +3003,7 @@ end))
 
 ToggleReferences.HideStats = makeToggle(catHideStats, "⚡ Enable Hide Stats", function(on)
     SetConfigValue("Settings.HideStats.Enabled", on)
-    -- SaveCurrentConfig()
+    
     
     if not HideStats then
         SendNotification("Error", "Hide Stats module tidak tersedia!", 3)
