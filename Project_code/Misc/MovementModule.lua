@@ -1,12 +1,9 @@
--- Movement Module (Sprint & Infinite Jump)
--- To be integrated with LynxGUI via SecurityLoader
--- File: MovementModule.lua
-
 local MovementModule = {}
 
 -- Services
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 -- Variables
 local player = Players.LocalPlayer
@@ -24,10 +21,7 @@ MovementModule.Settings = {
 -- Internal State
 local connections = {}
 local jumpConnection = nil
-
--- ============================================
--- UTILITY FUNCTIONS
--- ============================================
+local sprintConnection = nil
 
 local function cleanup()
     for _, conn in pairs(connections) do
@@ -41,11 +35,25 @@ local function cleanup()
         jumpConnection:Disconnect()
         jumpConnection = nil
     end
+    
+    if sprintConnection then
+        sprintConnection:Disconnect()
+        sprintConnection = nil
+    end
 end
 
--- ============================================
--- SPRINT SYSTEM
--- ============================================
+local function maintainSprintSpeed()
+    if sprintConnection then
+        sprintConnection:Disconnect()
+    end
+    
+    -- Loop yang terus memantau dan mempertahankan sprint speed
+    sprintConnection = RunService.Heartbeat:Connect(function()
+        if MovementModule.Settings.SprintEnabled and humanoid and humanoid.WalkSpeed ~= MovementModule.Settings.SprintSpeed then
+            humanoid.WalkSpeed = MovementModule.Settings.SprintSpeed
+        end
+    end)
+end
 
 function MovementModule.SetSprintSpeed(speed)
     MovementModule.Settings.SprintSpeed = math.clamp(speed, 16, 200)
@@ -64,6 +72,9 @@ function MovementModule.EnableSprint()
         humanoid.WalkSpeed = MovementModule.Settings.SprintSpeed
     end
     
+    -- Aktifkan loop pemantau sprint speed
+    maintainSprintSpeed()
+    
     return true
 end
 
@@ -71,6 +82,12 @@ function MovementModule.DisableSprint()
     if not MovementModule.Settings.SprintEnabled then return false end
     
     MovementModule.Settings.SprintEnabled = false
+    
+    -- Matikan loop pemantau
+    if sprintConnection then
+        sprintConnection:Disconnect()
+        sprintConnection = nil
+    end
     
     if humanoid then
         humanoid.WalkSpeed = MovementModule.Settings.DefaultSpeed
@@ -86,10 +103,6 @@ end
 function MovementModule.GetSprintSpeed()
     return MovementModule.Settings.SprintSpeed
 end
-
--- ============================================
--- INFINITE JUMP SYSTEM
--- ============================================
 
 local function enableInfiniteJump()
     if jumpConnection then
@@ -129,10 +142,6 @@ function MovementModule.IsInfiniteJumpEnabled()
     return MovementModule.Settings.InfiniteJumpEnabled
 end
 
--- ============================================
--- CHARACTER RESPAWN HANDLER
--- ============================================
-
 table.insert(connections, player.CharacterAdded:Connect(function(newChar)
     character = newChar
     humanoid = character:WaitForChild("Humanoid")
@@ -141,6 +150,7 @@ table.insert(connections, player.CharacterAdded:Connect(function(newChar)
     if MovementModule.Settings.SprintEnabled then
         task.wait(0.1)
         humanoid.WalkSpeed = MovementModule.Settings.SprintSpeed
+        maintainSprintSpeed() -- Aktifkan kembali loop pemantau
     end
     
     -- Re-apply infinite jump if enabled
@@ -148,10 +158,6 @@ table.insert(connections, player.CharacterAdded:Connect(function(newChar)
         enableInfiniteJump()
     end
 end))
-
--- ============================================
--- MODULE LIFECYCLE (Required by SecurityLoader)
--- ============================================
 
 function MovementModule.Start()
     MovementModule.Settings.SprintEnabled = false
