@@ -32,6 +32,7 @@ local AUTO_FAVORITE_TIERS = {}
 local AUTO_FAVORITE_ENABLED = false
 local AUTO_FAVORITE_VARIANTS = {}
 local AUTO_FAVORITE_VARIANT_ENABLED = false
+local eventConnection = nil
 
 -- ============================================
 -- GET GAME EVENTS
@@ -210,10 +211,32 @@ function AutoFavoriteModule.GetAllVariants()
 end
 
 -- ============================================
+-- START/STOP FUNCTIONS
+-- ============================================
+
+function AutoFavoriteModule:Start()
+    if eventConnection then return false end
+    
+    eventConnection = NotificationEvent.OnClientEvent:Connect(function(itemId, metadata, extraData, boolFlag)
+        -- ... existing logic ...
+    end)
+    
+    return true
+end
+
+function AutoFavoriteModule:Stop()
+    if eventConnection then
+        eventConnection:Disconnect()
+        eventConnection = nil
+    end
+    return true
+end
+
+-- ============================================
 -- AUTO FAVORITE LOGIC
 -- ============================================
 
-NotificationEvent.OnClientEvent:Connect(function(itemId, metadata, extraData, boolFlag)
+-- Remove the direct connection, use Start() instead
     local inventoryItem = extraData and extraData.InventoryItem
     local uuid = inventoryItem and inventoryItem.UUID
     
