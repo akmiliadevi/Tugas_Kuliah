@@ -352,7 +352,7 @@ local ModuleList = {
     "TeleportModule", "TeleportToPlayer", "SavedLocation", "EventTeleportDynamic",
     "AutoQuestModule", "AutoTemple", "TempleDataReader",
     "AutoSell", "AutoSellTimer", "MerchantSystem", "RemoteBuyer", "AutoBuyWeather",
-    "FreecamModule", "UnlimitedZoomModule", "AntiAFK", "UnlockFPS", "FPSBooster", "DisableRendering"
+    "FreecamModule", "UnlimitedZoomModule", "AntiAFK", "UnlockFPS", "FPSBooster", "DisableRendering", "MovementModule"
 }
 
 totalModules = #ModuleList
@@ -2801,6 +2801,39 @@ ToggleReferences.AntiAFK = makeToggle(catAFK, "Enable Anti-AFK", function(on)
     SaveCurrentConfig()
     if AntiAFK then
         if on then AntiAFK.Start() else AntiAFK.Stop() end
+    end
+end)
+
+-- Movement Features
+local catMovement = makeCategory(settingsPage, "Player Utility", "🏃")
+
+-- Sprint Speed Input
+makeInput(catMovement, "Sprint Speed", 50, function(v)
+    local MovementModule = GetModule("MovementModule")
+    if MovementModule then MovementModule.SetSprintSpeed(v) end
+end)
+
+-- Sprint Toggle
+ToggleReferences.Sprint = makeToggle(catMovement, "Enable Sprint", function(on)
+    local MovementModule = GetModule("MovementModule")
+    if MovementModule then
+        if on then 
+            MovementModule.EnableSprint()
+        else 
+            MovementModule.DisableSprint()
+        end
+    end
+end)
+
+-- Infinite Jump Toggle
+ToggleReferences.InfiniteJump = makeToggle(catMovement, "Enable Infinite Jump", function(on)
+    local MovementModule = GetModule("MovementModule")
+    if MovementModule then
+        if on then 
+            MovementModule.EnableInfiniteJump()
+        else 
+            MovementModule.DisableInfiniteJump()
+        end
     end
 end)
 
