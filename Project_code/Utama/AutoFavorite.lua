@@ -3,7 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local AutoFavoriteModule = {}
 
 -- ============================================
--- CONFIGURATION
+-- CONFIGURATIONgd
 -- ============================================
 local TIER_MAP = {
     ["Common"] = 1,
@@ -293,3 +293,4 @@ end
 end)
 
 return AutoFavoriteModule
+
