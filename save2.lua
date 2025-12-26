@@ -1,15 +1,19 @@
--- ConfigSystem.lua - Selective Save on Minimize Version
+-- ConfigSystem.lua - Dirty Flags + Debounced Auto-Save Version
 local HttpService = game:GetService("HttpService")
 
 local ConfigSystem = {}
-ConfigSystem.Version = "1.4"
+ConfigSystem.Version = "2.0-DirtyFlags"
 
 local CONFIG_FOLDER = "LynxGUI_Configs"
 local CONFIG_FILE = CONFIG_FOLDER .. "/lynx_config.json"
 
+-- ✅ Auto-Save Settings
+local AUTO_SAVE_DELAY = 5 -- Delay sebelum auto-save (detik)
+local saveTimer = nil
+local isDirty = false
+
 -- ✅ WHITELIST: Paths yang akan di-save saat minimize
 local SAVE_ON_MINIMIZE_PATHS = {
-    -- Main/Dashboard Page (SEMUA)
     "InstantFishing",
     "BlatantTester",
     "BlatantV1",
@@ -18,15 +22,9 @@ local SAVE_ON_MINIMIZE_PATHS = {
     "Support",
     "AutoFavorite",
     "SkinAnimation",
-    
-    -- Shop Page (HANYA yang dipilih)
     "Shop.AutoSellTimer",
     "Shop.AutoBuyWeather",
-    
-    -- Webhook Page (SEMUA)
     "Webhook",
-    
-    -- Settings Page (HANYA yang dipilih)
     "Settings.AntiAFK",
     "Settings.FPSBooster",
     "Settings.DisableRendering",
@@ -68,7 +66,9 @@ local DefaultConfig = {
 local CurrentConfig = {}
 local lastSavedConfig = nil
 
--- Utility Functions
+-- ============================================
+-- UTILITY FUNCTIONS
+-- ============================================
 local function DeepCopy(original)
     if type(original) ~= "table" then return original end
     local copy = {}
@@ -94,7 +94,6 @@ local function EnsureFolderExists()
     end
 end
 
--- ✅ Check if path is in whitelist
 local function IsPathWhitelisted(path)
     for _, whitelistedPath in ipairs(SAVE_ON_MINIMIZE_PATHS) do
         if path:sub(1, #whitelistedPath) == whitelistedPath then
@@ -104,7 +103,6 @@ local function IsPathWhitelisted(path)
     return false
 end
 
--- ✅ Get value from nested table using path
 local function GetValueFromPath(tbl, path)
     local keys = {}
     for key in string.gmatch(path, "[^.]+") do
@@ -123,7 +121,6 @@ local function GetValueFromPath(tbl, path)
     return value
 end
 
--- ✅ Set value in nested table using path
 local function SetValueInPath(tbl, path, value)
     local keys = {}
     for key in string.gmatch(path, "[^.]+") do
@@ -142,57 +139,123 @@ local function SetValueInPath(tbl, path, value)
     target[keys[#keys]] = value
 end
 
--- ✅ Save ONLY whitelisted paths
-function ConfigSystem.SaveSelective()
+-- ============================================
+-- CORE SAVE FUNCTION (Real Save)
+-- ============================================
+local function RealSave(selectiveOnly)
     local success, err = pcall(function()
         EnsureFolderExists()
         
-        -- Load existing config (or use default)
-        local existingConfig = DeepCopy(DefaultConfig)
-        if isfile(CONFIG_FILE) then
-            local jsonData = readfile(CONFIG_FILE)
-            local loadedConfig = HttpService:JSONDecode(jsonData)
-            MergeTables(existingConfig, loadedConfig)
-        end
+        local configToSave
         
-        -- Update ONLY whitelisted paths
-        for _, path in ipairs(SAVE_ON_MINIMIZE_PATHS) do
-            local currentValue = GetValueFromPath(CurrentConfig, path)
-            if currentValue ~= nil then
-                SetValueInPath(existingConfig, path, DeepCopy(currentValue))
+        if selectiveOnly then
+            -- Load existing config
+            local existingConfig = DeepCopy(DefaultConfig)
+            if isfile(CONFIG_FILE) then
+                local jsonData = readfile(CONFIG_FILE)
+                local loadedConfig = HttpService:JSONDecode(jsonData)
+                MergeTables(existingConfig, loadedConfig)
             end
+            
+            -- Update ONLY whitelisted paths
+            for _, path in ipairs(SAVE_ON_MINIMIZE_PATHS) do
+                local currentValue = GetValueFromPath(CurrentConfig, path)
+                if currentValue ~= nil then
+                    SetValueInPath(existingConfig, path, DeepCopy(currentValue))
+                end
+            end
+            
+            configToSave = existingConfig
+        else
+            -- Save ALL config
+            configToSave = CurrentConfig
         end
         
-        -- Save merged config
-        local jsonData = HttpService:JSONEncode(existingConfig)
+        local jsonData = HttpService:JSONEncode(configToSave)
         writefile(CONFIG_FILE, jsonData)
     end)
     
     if success then
         lastSavedConfig = DeepCopy(CurrentConfig)
+        isDirty = false
         return true, "Config saved!"
     else
         return false, "Save failed: " .. tostring(err)
     end
 end
 
--- Save ALL (untuk manual save button)
+-- ============================================
+-- DEBOUNCED AUTO-SAVE SCHEDULER
+-- ============================================
+local function ScheduleSave(selectiveOnly)
+    -- Cancel timer jika ada perubahan baru
+    if saveTimer then
+        pcall(function() task.cancel(saveTimer) end)
+        saveTimer = nil
+    end
+    
+    -- Buat timer baru
+    saveTimer = task.delay(AUTO_SAVE_DELAY, function()
+        if isDirty then
+            RealSave(selectiveOnly)
+            print("[ConfigSystem] Auto-saved after " .. AUTO_SAVE_DELAY .. "s delay")
+        end
+        saveTimer = nil
+    end)
+end
+
+-- ============================================
+-- PUBLIC API
+-- ============================================
+
+-- Set value dengan auto-save scheduling
+function ConfigSystem.Set(path, value)
+    local currentValue = GetValueFromPath(CurrentConfig, path)
+    
+    -- Cek apakah value benar-benar berubah
+    local currentJson = HttpService:JSONEncode(currentValue or {})
+    local newJson = HttpService:JSONEncode(value or {})
+    
+    if currentJson ~= newJson then
+        SetValueInPath(CurrentConfig, path, value)
+        isDirty = true
+        
+        -- Schedule auto-save (selective mode)
+        ScheduleSave(true)
+    end
+end
+
+-- Get value
+function ConfigSystem.Get(path)
+    return GetValueFromPath(CurrentConfig, path)
+end
+
+-- Get entire config
+function ConfigSystem.GetConfig()
+    return CurrentConfig
+end
+
+-- Force save immediately (untuk manual save button)
 function ConfigSystem.Save()
-    local success, err = pcall(function()
-        EnsureFolderExists()
-        local jsonData = HttpService:JSONEncode(CurrentConfig)
-        writefile(CONFIG_FILE, jsonData)
-    end)
-    
-    if success then
-        lastSavedConfig = DeepCopy(CurrentConfig)
-        return true, "Config saved!"
-    else
-        return false, "Save failed: " .. tostring(err)
+    if saveTimer then
+        pcall(function() task.cancel(saveTimer) end)
+        saveTimer = nil
     end
+    
+    return RealSave(false)
 end
 
--- Load Function
+-- Save ONLY whitelisted paths immediately (untuk minimize)
+function ConfigSystem.SaveSelective()
+    if saveTimer then
+        pcall(function() task.cancel(saveTimer) end)
+        saveTimer = nil
+    end
+    
+    return RealSave(true)
+end
+
+-- Load config
 function ConfigSystem.Load()
     EnsureFolderExists()
     CurrentConfig = DeepCopy(DefaultConfig)
@@ -206,72 +269,75 @@ function ConfigSystem.Load()
         
         if success then
             lastSavedConfig = DeepCopy(CurrentConfig)
+            isDirty = false
             return true, CurrentConfig
         else
             return false, CurrentConfig
         end
     else
+        isDirty = false
         return false, CurrentConfig
     end
 end
 
--- Get/Set Functions
-function ConfigSystem.GetConfig()
-    return CurrentConfig
-end
-
-function ConfigSystem.Get(path)
-    return GetValueFromPath(CurrentConfig, path)
-end
-
-function ConfigSystem.Set(path, value)
-    SetValueInPath(CurrentConfig, path, value)
-end
-
+-- Check if there are unsaved changes
 function ConfigSystem.HasUnsavedChanges()
-    if not lastSavedConfig then return false end
-    
-    -- Check ONLY whitelisted paths
-    for _, path in ipairs(SAVE_ON_MINIMIZE_PATHS) do
-        local currentValue = GetValueFromPath(CurrentConfig, path)
-        local savedValue = GetValueFromPath(lastSavedConfig, path)
-        
-        local currentJson = HttpService:JSONEncode(currentValue or {})
-        local savedJson = HttpService:JSONEncode(savedValue or {})
-        
-        if currentJson ~= savedJson then
-            return true
-        end
-    end
-    
-    return false
+    return isDirty
 end
 
+-- Mark as saved (reset dirty flag)
 function ConfigSystem.MarkAsSaved()
+    isDirty = false
     lastSavedConfig = DeepCopy(CurrentConfig)
 end
 
--- Utility Functions
+-- Reset to default
 function ConfigSystem.Reset()
     CurrentConfig = DeepCopy(DefaultConfig)
-    local success, message = ConfigSystem.Save()
-    return success, message
+    isDirty = true
+    return ConfigSystem.Save()
 end
 
+-- Delete config file
 function ConfigSystem.Delete()
     if isfile(CONFIG_FILE) then
         delfile(CONFIG_FILE)
+        isDirty = false
+        lastSavedConfig = nil
         return true
     else
         return false
     end
 end
 
+-- Cleanup (cancel pending saves)
 function ConfigSystem.Cleanup()
+    if saveTimer then
+        pcall(function() task.cancel(saveTimer) end)
+        saveTimer = nil
+    end
+    
+    -- Force save if dirty
+    if isDirty then
+        RealSave(true)
+    end
+    
     lastSavedConfig = nil
 end
 
--- Initialization
+-- Set auto-save delay
+function ConfigSystem.SetAutoSaveDelay(seconds)
+    AUTO_SAVE_DELAY = math.max(1, seconds)
+end
+
+-- Get auto-save delay
+function ConfigSystem.GetAutoSaveDelay()
+    return AUTO_SAVE_DELAY
+end
+
+-- ============================================
+-- INITIALIZATION
+-- ============================================
 ConfigSystem.Load()
 
 return ConfigSystem
