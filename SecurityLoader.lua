@@ -1,4 +1,4 @@
--- UPDATED SECURITY LOADER - Includes EventTeleportDynamic
+-- UPDATED SECURITY LOADER - Includes EventTeleportDynamicss
 -- Replace your SecurityLoader.lua with this
 
 local SecurityLoader = {}
