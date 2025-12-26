@@ -1,10 +1,10 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local AutoFavoriteModule = {}
-
 -- ============================================
--- CONFIGURATIONgd
+-- AUTO FAVORITE SYSTEM (MEMORY SAFE)
 -- ============================================
+
+local AutoFavorite = {}
+
+-- Tier mapping
 local TIER_MAP = {
     ["Common"] = 1,
     ["Uncommon"] = 2,
@@ -15,282 +15,202 @@ local TIER_MAP = {
     ["SECRET"] = 7
 }
 
-local TIER_NAMES = {
-    [1] = "Common",
-    [2] = "Uncommon",
-    [3] = "Rare",
-    [4] = "Epic",
-    [5] = "Legendary",
-    [6] = "Mythic",
-    [7] = "SECRET"
-}
-
--- ============================================
--- STATE VARIABLES
--- ============================================
+-- State variables
 local AUTO_FAVORITE_TIERS = {}
-local AUTO_FAVORITE_ENABLED = false
 local AUTO_FAVORITE_VARIANTS = {}
-local AUTO_FAVORITE_VARIANT_ENABLED = false
-local eventConnection = nil
+local AUTO_FAVORITE_ENABLED = false
 
--- ============================================
--- GET GAME EVENTS
--- ============================================
+-- Connection management
+local activeConnections = {}
+
+-- Get required services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Get favorite event
 local FavoriteEvent = ReplicatedStorage:WaitForChild("Packages")
     :WaitForChild("_Index")
     :WaitForChild("sleitnick_net@0.2.0")
     :WaitForChild("net")
     :WaitForChild("RE/FavoriteItem")
 
+-- Get notification event
 local NotificationEvent = ReplicatedStorage:WaitForChild("Packages")
     :WaitForChild("_Index")
     :WaitForChild("sleitnick_net@0.2.0")
     :WaitForChild("net")
     :WaitForChild("RE/ObtainedNewFishNotification")
 
--- ============================================
--- FISH DATA HELPER
--- ============================================
+-- Get fish data helper (cached)
 local itemsModule = require(ReplicatedStorage:WaitForChild("Items"))
 
+-- Cache untuk fish data (prevent repeated lookups)
+local fishDataCache = {}
+
 local function getFishData(itemId)
+    -- Check cache first
+    if fishDataCache[itemId] then
+        return fishDataCache[itemId]
+    end
+    
+    -- Lookup and cache
     for _, fish in pairs(itemsModule) do
         if fish.Data and fish.Data.Id == itemId then
+            fishDataCache[itemId] = fish
             return fish
         end
     end
+    
     return nil
 end
 
 -- ============================================
--- TIER MANAGEMENT
+-- PUBLIC FUNCTIONS FOR GUI
 -- ============================================
 
--- Enable tier(s) for auto favorite
-function AutoFavoriteModule.EnableTiers(tierNames)
-    if type(tierNames) == "string" then
-        tierNames = {tierNames}
-    end
-    
-    for _, tierName in ipairs(tierNames) do
-        local tier = TIER_MAP[tierName]
-        if tier then
-            AUTO_FAVORITE_TIERS[tier] = true
-            AUTO_FAVORITE_ENABLED = true
-        end
-    end
-end
-
--- Disable tier(s)
-function AutoFavoriteModule.DisableTiers(tierNames)
-    if type(tierNames) == "string" then
-        tierNames = {tierNames}
-    end
-    
-    for _, tierName in ipairs(tierNames) do
-        local tier = TIER_MAP[tierName]
-        if tier then
-            AUTO_FAVORITE_TIERS[tier] = nil
-        end
-    end
-    
-    -- Check if any tier still enabled
-    local anyEnabled = false
-    for _ in pairs(AUTO_FAVORITE_TIERS) do
-        anyEnabled = true
-        break
-    end
-    AUTO_FAVORITE_ENABLED = anyEnabled
-end
-
--- Clear all tier selections
-function AutoFavoriteModule.ClearTiers()
-    AUTO_FAVORITE_TIERS = {}
-    AUTO_FAVORITE_ENABLED = false
-end
-
--- Get enabled tiers
-function AutoFavoriteModule.GetEnabledTiers()
-    local enabled = {}
-    for tier, _ in pairs(AUTO_FAVORITE_TIERS) do
-        table.insert(enabled, TIER_NAMES[tier])
-    end
-    return enabled
-end
-
--- Check if tier is enabled
-function AutoFavoriteModule.IsTierEnabled(tierName)
-    local tier = TIER_MAP[tierName]
-    return tier and AUTO_FAVORITE_TIERS[tier] == true
-end
-
--- ============================================
--- VARIANT/MUTATION MANAGEMENT
--- ============================================
-
--- Enable variant(s) for auto favorite
-function AutoFavoriteModule.EnableVariants(variantNames)
-    if type(variantNames) == "string" then
-        variantNames = {variantNames}
-    end
-    
-    for _, variantName in ipairs(variantNames) do
-        AUTO_FAVORITE_VARIANTS[variantName] = true
-        AUTO_FAVORITE_VARIANT_ENABLED = true
-    end
-end
-
--- Disable variant(s)
-function AutoFavoriteModule.DisableVariants(variantNames)
-    if type(variantNames) == "string" then
-        variantNames = {variantNames}
-    end
-    
-    for _, variantName in ipairs(variantNames) do
-        AUTO_FAVORITE_VARIANTS[variantName] = nil
-    end
-    
-    -- Check if any variant still enabled
-    local anyEnabled = false
-    for _ in pairs(AUTO_FAVORITE_VARIANTS) do
-        anyEnabled = true
-        break
-    end
-    AUTO_FAVORITE_VARIANT_ENABLED = anyEnabled
-end
-
--- Clear all variant selections
-function AutoFavoriteModule.ClearVariants()
-    AUTO_FAVORITE_VARIANTS = {}
-    AUTO_FAVORITE_VARIANT_ENABLED = false
-end
-
--- Get enabled variants
-function AutoFavoriteModule.GetEnabledVariants()
-    local enabled = {}
-    for variant, _ in pairs(AUTO_FAVORITE_VARIANTS) do
-        table.insert(enabled, variant)
-    end
-    return enabled
-end
-
--- Check if variant is enabled
-function AutoFavoriteModule.IsVariantEnabled(variantName)
-    return AUTO_FAVORITE_VARIANTS[variantName] == true
-end
-
--- ============================================
--- STATUS & INFO
--- ============================================
-
-function AutoFavoriteModule.IsEnabled()
-    return AUTO_FAVORITE_ENABLED or AUTO_FAVORITE_VARIANT_ENABLED
-end
-
-function AutoFavoriteModule.GetStatus()
-    return {
-        TierEnabled = AUTO_FAVORITE_ENABLED,
-        VariantEnabled = AUTO_FAVORITE_VARIANT_ENABLED,
-        EnabledTiers = AutoFavoriteModule.GetEnabledTiers(),
-        EnabledVariants = AutoFavoriteModule.GetEnabledVariants()
-    }
-end
-
-function AutoFavoriteModule.GetAllTiers()
+function AutoFavorite.GetAllTiers()
     return {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "SECRET"}
 end
 
-function AutoFavoriteModule.GetAllVariants()
+function AutoFavorite.GetAllVariants()
     return {
-        "Galaxy", "Corrupt", "Gemstone", "Fairy Dust", "Midnight",
-        "Color Burn", "Holographic", "Lightning", "Radioactive",
-        "Ghost", "Gold", "Frozen ", "1x1x1x1", "Stone", "Sandy",
-        "Noob", "Moon Fragment", "Festive", "Albino", "Arctic Frost", "Disco"
+        "Galaxy",
+        "Corrupt",
+        "Gemstone",
+        "Fairy Dust",
+        "Midnight",
+        "Color Burn",
+        "Holographic",
+        "Lightning",
+        "Radioactive",
+        "Ghost",
+        "Gold",
+        "Frozen",
+        "1x1x1x1",
+        "Stone",
+        "Sandy",
+        "Noob",
+        "Moon Fragment",
+        "Festive",
+        "Albino",
+        "Arctic Frost",
+        "Disco"
     }
 end
 
+function AutoFavorite.EnableTiers(selectedTiers)
+    for _, tierName in ipairs(selectedTiers) do
+        local tier = TIER_MAP[tierName]
+        if tier then
+            AUTO_FAVORITE_TIERS[tier] = true
+        end
+    end
+end
+
+function AutoFavorite.ClearTiers()
+    table.clear(AUTO_FAVORITE_TIERS)
+end
+
+function AutoFavorite.EnableVariants(selectedVariants)
+    for _, variantName in ipairs(selectedVariants) do
+        AUTO_FAVORITE_VARIANTS[variantName] = true
+    end
+end
+
+function AutoFavorite.ClearVariants()
+    table.clear(AUTO_FAVORITE_VARIANTS)
+end
+
 -- ============================================
--- START/STOP FUNCTIONS
+-- CONNECTION MANAGEMENT
 -- ============================================
 
-function AutoFavoriteModule:Start()
-    if eventConnection then return false end
+local function disconnectAll()
+    for _, conn in pairs(activeConnections) do
+        if conn and conn.Connected then
+            conn:Disconnect()
+        end
+    end
+    table.clear(activeConnections)
+end
+
+function AutoFavorite:Start()
+    -- Disconnect existing connections first
+    disconnectAll()
     
-    eventConnection = NotificationEvent.OnClientEvent:Connect(function(itemId, metadata, extraData, boolFlag)
-        -- ... existing logic ...
+    AUTO_FAVORITE_ENABLED = true
+    
+    -- Create new connection
+    local connection = NotificationEvent.OnClientEvent:Connect(function(itemId, metadata, extraData)
+        if not AUTO_FAVORITE_ENABLED then 
+            return 
+        end
+        
+        -- Early exit checks
+        if not extraData or not extraData.InventoryItem then
+            return
+        end
+        
+        local inventoryItem = extraData.InventoryItem
+        local uuid = inventoryItem.UUID
+        
+        if not uuid or inventoryItem.Favorited then 
+            return 
+        end
+
+        local shouldFavorite = false
+
+        -- Check Tier
+        if next(AUTO_FAVORITE_TIERS) then
+            local fishData = getFishData(itemId)
+            if fishData and fishData.Data and fishData.Data.Tier then
+                if AUTO_FAVORITE_TIERS[fishData.Data.Tier] then
+                    shouldFavorite = true
+                end
+            end
+        end
+
+        -- Check Variant (only if not already marked for favorite)
+        if not shouldFavorite and next(AUTO_FAVORITE_VARIANTS) then
+            local variantId = metadata and metadata.VariantId
+            if variantId and variantId ~= "None" and AUTO_FAVORITE_VARIANTS[variantId] then
+                shouldFavorite = true
+            end
+        end
+
+        -- Execute Favorite
+        if shouldFavorite then
+            task.delay(0.35, function()
+                pcall(function()
+                    FavoriteEvent:FireServer(uuid)
+                end)
+            end)
+        end
     end)
     
-    return true
+    -- Store connection
+    table.insert(activeConnections, connection)
 end
 
-function AutoFavoriteModule:Stop()
-    if eventConnection then
-        eventConnection:Disconnect()
-        eventConnection = nil
-    end
-    return true
+function AutoFavorite:Stop()
+    AUTO_FAVORITE_ENABLED = false
+    disconnectAll()
 end
 
 -- ============================================
--- AUTO FAVORITE LOGIC
+-- CLEANUP ON MODULE UNLOAD
 -- ============================================
 
--- Remove the direct connection, use Start() instead
-    local inventoryItem = extraData and extraData.InventoryItem
-    local uuid = inventoryItem and inventoryItem.UUID
-    
-    if not uuid or inventoryItem.Favorited then 
-        return 
-    end
-    
-    local shouldFavorite = false
-    local favoriteReason = ""
-    
-    -- =====================
-    -- CHECK TIER
-    -- =====================
-    if AUTO_FAVORITE_ENABLED then
-        local fishData = getFishData(itemId)
-        if fishData and fishData.Data and fishData.Data.Tier then
-            if AUTO_FAVORITE_TIERS[fishData.Data.Tier] then
-                shouldFavorite = true
-                local tierName = TIER_NAMES[fishData.Data.Tier] or "Unknown"
-                favoriteReason = "[TIER: " .. tierName .. "]"
-            end
-        end
-    end
-    
-    -- =====================
-    -- CHECK VARIANT
-    -- =====================
-    if not shouldFavorite and AUTO_FAVORITE_VARIANT_ENABLED then
-        local variantId = metadata and metadata.VariantId
-        if variantId and variantId ~= "None" and AUTO_FAVORITE_VARIANTS[variantId] then
-            shouldFavorite = true
-            favoriteReason = "[VARIANT: " .. variantId .. "]"
-        end
-    end
-    
-    -- =====================
-    -- EXECUTE FAVORITE
-    -- =====================
-    if shouldFavorite then
-        task.delay(0.35, function()
-            local success, err = pcall(function()
-                FavoriteEvent:FireServer(uuid)
-            end)
-            
-            if success then
-                local fishData = getFishData(itemId)
-                local fishName = fishData and fishData.Data and fishData.Data.Name or "Unknown"
-                print(string.format("⭐ Auto favorited: %s %s", fishName, favoriteReason))
-            else
-                warn(string.format("❌ Failed to auto favorite: %s", tostring(err)))
-            end
-        end)
-    end
-end)
+local function cleanup()
+    disconnectAll()
+    table.clear(AUTO_FAVORITE_TIERS)
+    table.clear(AUTO_FAVORITE_VARIANTS)
+    table.clear(fishDataCache)
+    AUTO_FAVORITE_ENABLED = false
+end
 
-return AutoFavoriteModule
+-- Register cleanup
+if game then
+    game:BindToClose(cleanup)
+end
 
+return AutoFavorite
