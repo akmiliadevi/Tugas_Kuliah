@@ -1,4 +1,4 @@
--- LynxGUI v2.3.1 Performance Optimized - Part 1/8
+-- LynxGUI v2.3.1 Performance Optimized - Part 1/8oiii
 -- Core Setup & Module Loading System
 -- Fixed: Memory leaks, optimized performance
 
@@ -533,7 +533,7 @@ new("UICorner", {Parent = scriptHeader, CornerRadius = UDim.new(0, 12)})
 -- Title
 local titleLabel = new("TextLabel", {
     Parent = scriptHeader,
-    Text = "LynX",
+    Text = "LynX v2.3",
     Size = UDim2.new(0, 80, 1, 0),
     Position = UDim2.new(0, 15, 0, 0),
     BackgroundTransparency = 1,
