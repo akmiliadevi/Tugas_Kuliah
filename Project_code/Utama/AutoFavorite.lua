@@ -3,7 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local AutoFavoriteModule = {}
 
 -- ============================================
--- CONFIGURATIONdf
+-- CONFIGURATION
 -- ============================================
 local TIER_MAP = {
     ["Common"] = 1,
@@ -210,62 +210,86 @@ function AutoFavoriteModule.GetAllVariants()
     }
 end
 
+-- ============================================
+-- START/STOP FUNCTIONS
+-- ============================================
+
 function AutoFavoriteModule:Start()
     if eventConnection then return false end
     
     eventConnection = NotificationEvent.OnClientEvent:Connect(function(itemId, metadata, extraData, boolFlag)
-        -- AUTO FAVORITE LOGIC
-        local inventoryItem = extraData and extraData.InventoryItem
-        local uuid = inventoryItem and inventoryItem.UUID
-        
-        if not uuid or inventoryItem.Favorited then 
-            return 
-        end
-        
-        local shouldFavorite = false
-        local favoriteReason = ""
-        
-        -- CHECK TIER
-        if AUTO_FAVORITE_ENABLED then
-            local fishData = getFishData(itemId)
-            if fishData and fishData.Data and fishData.Data.Tier then
-                if AUTO_FAVORITE_TIERS[fishData.Data.Tier] then
-                    shouldFavorite = true
-                    local tierName = TIER_NAMES[fishData.Data.Tier] or "Unknown"
-                    favoriteReason = "[TIER: " .. tierName .. "]"
-                end
-            end
-        end
-        
-        -- CHECK VARIANT
-        if not shouldFavorite and AUTO_FAVORITE_VARIANT_ENABLED then
-            local variantId = metadata and metadata.VariantId
-            if variantId and variantId ~= "None" and AUTO_FAVORITE_VARIANTS[variantId] then
-                shouldFavorite = true
-                favoriteReason = "[VARIANT: " .. variantId .. "]"
-            end
-        end
-        
-        -- EXECUTE FAVORITE
-        if shouldFavorite then
-            task.delay(0.35, function()
-                local success, err = pcall(function()
-                    FavoriteEvent:FireServer(uuid)
-                end)
-                
-                if success then
-                    local fishData = getFishData(itemId)
-                    local fishName = fishData and fishData.Data and fishData.Data.Name or "Unknown"
-                    print(string.format("⭐ Auto favorited: %s %s", fishName, favoriteReason))
-                else
-                    warn(string.format("❌ Failed to auto favorite: %s", tostring(err)))
-                end
-            end)
-        end
+        -- ... existing logic ...
     end)
     
     return true
 end
 
-return AutoFavoriteModule
+function AutoFavoriteModule:Stop()
+    if eventConnection then
+        eventConnection:Disconnect()
+        eventConnection = nil
+    end
+    return true
+end
 
+-- ============================================
+-- AUTO FAVORITE LOGIC
+-- ============================================
+
+-- Remove the direct connection, use Start() instead
+    local inventoryItem = extraData and extraData.InventoryItem
+    local uuid = inventoryItem and inventoryItem.UUID
+    
+    if not uuid or inventoryItem.Favorited then 
+        return 
+    end
+    
+    local shouldFavorite = false
+    local favoriteReason = ""
+    
+    -- =====================
+    -- CHECK TIER
+    -- =====================
+    if AUTO_FAVORITE_ENABLED then
+        local fishData = getFishData(itemId)
+        if fishData and fishData.Data and fishData.Data.Tier then
+            if AUTO_FAVORITE_TIERS[fishData.Data.Tier] then
+                shouldFavorite = true
+                local tierName = TIER_NAMES[fishData.Data.Tier] or "Unknown"
+                favoriteReason = "[TIER: " .. tierName .. "]"
+            end
+        end
+    end
+    
+    -- =====================
+    -- CHECK VARIANT
+    -- =====================
+    if not shouldFavorite and AUTO_FAVORITE_VARIANT_ENABLED then
+        local variantId = metadata and metadata.VariantId
+        if variantId and variantId ~= "None" and AUTO_FAVORITE_VARIANTS[variantId] then
+            shouldFavorite = true
+            favoriteReason = "[VARIANT: " .. variantId .. "]"
+        end
+    end
+    
+    -- =====================
+    -- EXECUTE FAVORITE
+    -- =====================
+    if shouldFavorite then
+        task.delay(0.35, function()
+            local success, err = pcall(function()
+                FavoriteEvent:FireServer(uuid)
+            end)
+            
+            if success then
+                local fishData = getFishData(itemId)
+                local fishName = fishData and fishData.Data and fishData.Data.Name or "Unknown"
+                print(string.format("⭐ Auto favorited: %s %s", fishName, favoriteReason))
+            else
+                warn(string.format("❌ Failed to auto favorite: %s", tostring(err)))
+            end
+        end)
+    end
+end)
+
+return AutoFavoriteModule
