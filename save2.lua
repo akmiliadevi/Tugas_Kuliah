@@ -1,13 +1,40 @@
--- ConfigSystem.lua - Manual Save Version with Unsaved Changes Tracker
+-- ConfigSystem.lua - Selective Save on Minimize Version
 local HttpService = game:GetService("HttpService")
 
 local ConfigSystem = {}
-ConfigSystem.Version = "1.2"
+ConfigSystem.Version = "1.4"
 
 local CONFIG_FOLDER = "LynxGUI_Configs"
 local CONFIG_FILE = CONFIG_FOLDER .. "/lynx_config.json"
 
--- Default Config (sama seperti sebelumnya)
+-- ✅ WHITELIST: Paths yang akan di-save saat minimize
+local SAVE_ON_MINIMIZE_PATHS = {
+    -- Main/Dashboard Page (SEMUA)
+    "InstantFishing",
+    "BlatantTester",
+    "BlatantV1",
+    "UltraBlatant",
+    "FastAutoPerfect",
+    "Support",
+    "AutoFavorite",
+    "SkinAnimation",
+    
+    -- Shop Page (HANYA yang dipilih)
+    "Shop.AutoSellTimer",
+    "Shop.AutoBuyWeather",
+    
+    -- Webhook Page (SEMUA)
+    "Webhook",
+    
+    -- Settings Page (HANYA yang dipilih)
+    "Settings.AntiAFK",
+    "Settings.FPSBooster",
+    "Settings.DisableRendering",
+    "Settings.FPSLimit",
+    "Settings.HideStats",
+}
+
+-- Default Config
 local DefaultConfig = {
     InstantFishing = { Mode = "None", Enabled = false, FishingDelay = 1.30, CancelDelay = 0.19 },
     BlatantTester = { Enabled = false, CompleteDelay = 0.5, CancelDelay = 0.1 },
@@ -17,7 +44,8 @@ local DefaultConfig = {
     Support = {
         NoFishingAnimation = false, LockPosition = false, AutoEquipRod = false,
         DisableCutscenes = false, DisableObtainedNotif = false, DisableSkinEffect = false,
-        WalkOnWater = false, GoodPerfectionStable = false, PingFPSMonitor = false
+        WalkOnWater = false, GoodPerfectionStable = false, PingFPSMonitor = false,
+        SkinAnimation = { Enabled = false, Current = "Eclipse" }
     },
     Teleport = { SavedLocation = nil, LastEventSelected = nil, AutoTeleportEvent = false },
     Shop = {
@@ -66,66 +94,24 @@ local function EnsureFolderExists()
     end
 end
 
--- Save Function
-function ConfigSystem.Save()
-    print("💾 [ConfigSystem] Saving configuration...")
-    
-    local success, err = pcall(function()
-        EnsureFolderExists()
-        local jsonData = HttpService:JSONEncode(CurrentConfig)
-        writefile(CONFIG_FILE, jsonData)
-    end)
-    
-    if success then
-        print("✅ [ConfigSystem] Configuration saved!")
-        lastSavedConfig = DeepCopy(CurrentConfig)
-        return true, "Config saved!"
-    else
-        warn("❌ [ConfigSystem] Save failed:", err)
-        return false, "Save failed: " .. tostring(err)
-    end
-end
-
--- Load Function
-function ConfigSystem.Load()
-    print("🔄 [ConfigSystem] Loading configuration...")
-    
-    EnsureFolderExists()
-    CurrentConfig = DeepCopy(DefaultConfig)
-    
-    if isfile(CONFIG_FILE) then
-        local success, result = pcall(function()
-            local jsonData = readfile(CONFIG_FILE)
-            local loadedConfig = HttpService:JSONDecode(jsonData)
-            MergeTables(CurrentConfig, loadedConfig)
-        end)
-        
-        if success then
-            print("✅ [ConfigSystem] Configuration loaded!")
-            lastSavedConfig = DeepCopy(CurrentConfig)
-            return true, CurrentConfig
-        else
-            warn("❌ [ConfigSystem] Load failed:", result)
-            return false, CurrentConfig
+-- ✅ Check if path is in whitelist
+local function IsPathWhitelisted(path)
+    for _, whitelistedPath in ipairs(SAVE_ON_MINIMIZE_PATHS) do
+        if path:sub(1, #whitelistedPath) == whitelistedPath then
+            return true
         end
-    else
-        print("⚠️ [ConfigSystem] No saved config, using defaults")
-        return false, CurrentConfig
     end
+    return false
 end
 
--- Get/Set Functions
-function ConfigSystem.GetConfig()
-    return CurrentConfig
-end
-
-function ConfigSystem.Get(path)
+-- ✅ Get value from nested table using path
+local function GetValueFromPath(tbl, path)
     local keys = {}
     for key in string.gmatch(path, "[^.]+") do
         table.insert(keys, key)
     end
     
-    local value = CurrentConfig
+    local value = tbl
     for _, key in ipairs(keys) do
         if type(value) == "table" then
             value = value[key]
@@ -137,13 +123,14 @@ function ConfigSystem.Get(path)
     return value
 end
 
-function ConfigSystem.Set(path, value)
+-- ✅ Set value in nested table using path
+local function SetValueInPath(tbl, path, value)
     local keys = {}
     for key in string.gmatch(path, "[^.]+") do
         table.insert(keys, key)
     end
     
-    local target = CurrentConfig
+    local target = tbl
     for i = 1, #keys - 1 do
         local key = keys[i]
         if type(target[key]) ~= "table" then
@@ -155,14 +142,109 @@ function ConfigSystem.Set(path, value)
     target[keys[#keys]] = value
 end
 
--- ✅ CRITICAL: Add this function!
+-- ✅ Save ONLY whitelisted paths
+function ConfigSystem.SaveSelective()
+    local success, err = pcall(function()
+        EnsureFolderExists()
+        
+        -- Load existing config (or use default)
+        local existingConfig = DeepCopy(DefaultConfig)
+        if isfile(CONFIG_FILE) then
+            local jsonData = readfile(CONFIG_FILE)
+            local loadedConfig = HttpService:JSONDecode(jsonData)
+            MergeTables(existingConfig, loadedConfig)
+        end
+        
+        -- Update ONLY whitelisted paths
+        for _, path in ipairs(SAVE_ON_MINIMIZE_PATHS) do
+            local currentValue = GetValueFromPath(CurrentConfig, path)
+            if currentValue ~= nil then
+                SetValueInPath(existingConfig, path, DeepCopy(currentValue))
+            end
+        end
+        
+        -- Save merged config
+        local jsonData = HttpService:JSONEncode(existingConfig)
+        writefile(CONFIG_FILE, jsonData)
+    end)
+    
+    if success then
+        lastSavedConfig = DeepCopy(CurrentConfig)
+        return true, "Config saved!"
+    else
+        return false, "Save failed: " .. tostring(err)
+    end
+end
+
+-- Save ALL (untuk manual save button)
+function ConfigSystem.Save()
+    local success, err = pcall(function()
+        EnsureFolderExists()
+        local jsonData = HttpService:JSONEncode(CurrentConfig)
+        writefile(CONFIG_FILE, jsonData)
+    end)
+    
+    if success then
+        lastSavedConfig = DeepCopy(CurrentConfig)
+        return true, "Config saved!"
+    else
+        return false, "Save failed: " .. tostring(err)
+    end
+end
+
+-- Load Function
+function ConfigSystem.Load()
+    EnsureFolderExists()
+    CurrentConfig = DeepCopy(DefaultConfig)
+    
+    if isfile(CONFIG_FILE) then
+        local success, result = pcall(function()
+            local jsonData = readfile(CONFIG_FILE)
+            local loadedConfig = HttpService:JSONDecode(jsonData)
+            MergeTables(CurrentConfig, loadedConfig)
+        end)
+        
+        if success then
+            lastSavedConfig = DeepCopy(CurrentConfig)
+            return true, CurrentConfig
+        else
+            return false, CurrentConfig
+        end
+    else
+        return false, CurrentConfig
+    end
+end
+
+-- Get/Set Functions
+function ConfigSystem.GetConfig()
+    return CurrentConfig
+end
+
+function ConfigSystem.Get(path)
+    return GetValueFromPath(CurrentConfig, path)
+end
+
+function ConfigSystem.Set(path, value)
+    SetValueInPath(CurrentConfig, path, value)
+end
+
 function ConfigSystem.HasUnsavedChanges()
     if not lastSavedConfig then return false end
     
-    local currentJson = HttpService:JSONEncode(CurrentConfig)
-    local savedJson = HttpService:JSONEncode(lastSavedConfig)
+    -- Check ONLY whitelisted paths
+    for _, path in ipairs(SAVE_ON_MINIMIZE_PATHS) do
+        local currentValue = GetValueFromPath(CurrentConfig, path)
+        local savedValue = GetValueFromPath(lastSavedConfig, path)
+        
+        local currentJson = HttpService:JSONEncode(currentValue or {})
+        local savedJson = HttpService:JSONEncode(savedValue or {})
+        
+        if currentJson ~= savedJson then
+            return true
+        end
+    end
     
-    return currentJson ~= savedJson
+    return false
 end
 
 function ConfigSystem.MarkAsSaved()
@@ -170,44 +252,26 @@ function ConfigSystem.MarkAsSaved()
 end
 
 -- Utility Functions
-function ConfigSystem.PrintStatus()
-    print("=== LYNX GUI CONFIG STATUS ===")
-    print("📦 Version:", ConfigSystem.Version)
-    print("📁 Folder:", CONFIG_FOLDER)
-    print("📄 File:", CONFIG_FILE)
-    print("✅ Config exists:", isfile(CONFIG_FILE) and "YES" or "NO")
-    print("💾 Unsaved changes:", ConfigSystem.HasUnsavedChanges() and "YES" or "NO")
-    print("==============================")
-end
-
 function ConfigSystem.Reset()
-    print("🔄 [ConfigSystem] Resetting to defaults...")
     CurrentConfig = DeepCopy(DefaultConfig)
     local success, message = ConfigSystem.Save()
-    if success then
-        print("✅ [ConfigSystem] Reset complete!")
-    end
     return success, message
 end
 
 function ConfigSystem.Delete()
     if isfile(CONFIG_FILE) then
         delfile(CONFIG_FILE)
-        print("🗑️ [ConfigSystem] Config file deleted!")
         return true
     else
-        print("⚠️ [ConfigSystem] No config file to delete")
         return false
     end
 end
 
 function ConfigSystem.Cleanup()
     lastSavedConfig = nil
-    print("🧹 [ConfigSystem] Cleanup complete!")
 end
 
 -- Initialization
-print("🚀 [ConfigSystem v1.2] Loaded (Manual Save Mode)")
 ConfigSystem.Load()
 
 return ConfigSystem
