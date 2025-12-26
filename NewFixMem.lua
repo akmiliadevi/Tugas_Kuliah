@@ -3335,7 +3335,7 @@ ConnectionManager:Add(btnMinHeader.MouseButton1Click:Connect(function()
         
         -- Show saving notification if there are changes
         if hasUnsaved then
-            SendNotification("Minimizing...", "💾 Saving config...", 2)
+            SendNotification("Minimizing...", "Saving config...", 2)
         end
         
         -- Minimize animation
@@ -3350,7 +3350,7 @@ ConnectionManager:Add(btnMinHeader.MouseButton1Click:Connect(function()
         TrackedSpawn(function()
             if hasUnsaved and ConfigSystem then
                 local success, message = pcall(function()
-                    ConfigSystem.Save()
+                    ConfigSystem.SaveSelective()
                     ConfigSystem.MarkAsSaved()
                     return true
                 end)
