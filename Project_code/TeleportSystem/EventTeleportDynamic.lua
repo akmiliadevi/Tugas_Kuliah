@@ -1,3 +1,5 @@
+--oi
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -44,7 +46,9 @@ module.Events = {
 module.SearchRadius = 16            -- radius (studs) to consider "spawned object at coord"
 module.ScanInterval = 0.75          -- seconds between active scans when module is started
 module.UseClosestPartAsTarget = true -- if true, will teleport to nearest BasePart found; else teleport to declared coordinate
-module.HeightOffset = 15            -- ⬅️ NEW: studs to add to Y position (prevents drowning)
+module.HeightOffset = 15            -- studs to add to Y position (prevents drowning)
+module.SafeZoneRadius = 50          -- ⬅️ NEW: studs - player can move within this radius before re-teleport
+module.UseSmartReteleport = true    -- ⬅️ NEW: only re-teleport if player leaves safe zone
 
 -- =======================
 -- Internal state
@@ -52,6 +56,7 @@ module.HeightOffset = 15            -- ⬅️ NEW: studs to add to Y position (p
 local running = false
 local currentEventName = nil
 local heartbeatConn = nil
+local lastTeleportPosition = nil    -- ⬅️ NEW: track last teleport position
 
 -- ================
 -- Utilities
@@ -70,6 +75,25 @@ end
 local function applyHeightOffset(pos)
     if not pos then return nil end
     return Vector3.new(pos.X, pos.Y + module.HeightOffset, pos.Z)
+end
+
+-- ⬅️ NEW: Check if player is within safe zone
+local function isInSafeZone()
+    if not module.UseSmartReteleport then
+        return false -- always allow teleport if smart reteleport disabled
+    end
+    
+    if not lastTeleportPosition then
+        return false -- no previous teleport, allow teleport
+    end
+    
+    local hrp = getHRP()
+    if not hrp then
+        return false
+    end
+    
+    local distance = (hrp.Position - lastTeleportPosition).Magnitude
+    return distance <= module.SafeZoneRadius
 end
 
 -- find parts/models in workspace that are close to a Vector3 position
@@ -132,7 +156,7 @@ local function resolveActivePosition(eventName)
     for _, coord in ipairs(coords) do
         local part = findNearbyObject(coord, module.SearchRadius)
         if part then
-            -- ⬅️ CHANGED: Apply height offset to found part position
+            -- Apply height offset to found part position
             return applyHeightOffset(part.Position), part
         end
     end
@@ -149,12 +173,11 @@ local function resolveActivePosition(eventName)
                 best = coord
             end
         end
-        -- ⬅️ CHANGED: Apply height offset to fallback coord
+        -- Apply height offset to fallback coord
         return applyHeightOffset(best), nil
     end
 
     -- last-resort: first coordinate with height offset
-    -- ⬅️ CHANGED: Apply height offset
     return applyHeightOffset(coords[1]), nil
 end
 
@@ -169,6 +192,9 @@ local function doTeleportToPos(pos)
         else
             pcall(function() char:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(pos) end)
         end
+        
+        -- ⬅️ NEW: Update last teleport position
+        lastTeleportPosition = pos
         return true
     end
     return false
@@ -202,6 +228,7 @@ function module.Start(eventName)
 
     running = true
     currentEventName = eventName
+    lastTeleportPosition = nil -- ⬅️ NEW: Reset last position on start
 
     -- heartbeat loop: every ScanInterval, try to resolve active pos and teleport
     heartbeatConn = RunService.Heartbeat:Connect(function(dt)
@@ -211,16 +238,19 @@ function module.Start(eventName)
     -- We'll use a simple loop in task.spawn to avoid doing heavy work in Heartbeat directly
     task.spawn(function()
         while running do
-            local ok, posOrPart = pcall(function()
-                return resolveActivePosition(currentEventName)
-            end)
+            -- ⬅️ NEW: Check if player is still in safe zone
+            if not isInSafeZone() then
+                local ok, posOrPart = pcall(function()
+                    return resolveActivePosition(currentEventName)
+                end)
 
-            if ok and posOrPart then
-                local pos = posOrPart
-                if typeof(pos) == "Instance" then
-                    pos = pos.Position
+                if ok and posOrPart then
+                    local pos = posOrPart
+                    if typeof(pos) == "Instance" then
+                        pos = pos.Position
+                    end
+                    doTeleportToPos(pos)
                 end
-                doTeleportToPos(pos)
             end
 
             task.wait(module.ScanInterval)
@@ -233,6 +263,7 @@ end
 function module.Stop()
     running = false
     currentEventName = nil
+    lastTeleportPosition = nil -- ⬅️ NEW: Clear last position on stop
     if heartbeatConn then
         heartbeatConn:Disconnect()
         heartbeatConn = nil
@@ -256,10 +287,22 @@ function module.HasCoords(eventName)
     return v ~= nil and #v > 0
 end
 
--- ⬅️ NEW: Allow user to customize height offset
+-- Allow user to customize height offset
 function module.SetHeightOffset(offset)
     module.HeightOffset = offset or 15
     print("🎯 EventTeleport: Height offset set to", module.HeightOffset, "studs")
+end
+
+-- ⬅️ NEW: Allow user to customize safe zone radius
+function module.SetSafeZoneRadius(radius)
+    module.SafeZoneRadius = radius or 50
+    print("🎯 EventTeleport: Safe zone radius set to", module.SafeZoneRadius, "studs")
+end
+
+-- ⬅️ NEW: Toggle smart re-teleport
+function module.SetSmartReteleport(enabled)
+    module.UseSmartReteleport = enabled
+    print("🎯 EventTeleport: Smart re-teleport", enabled and "enabled" or "disabled")
 end
 
 return module
