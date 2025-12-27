@@ -1,4 +1,6 @@
---oi
+-- EventTeleportDynamic.lua
+-- Single-file module: event coordinates + dynamic detection + teleport functions
+-- Put this file on your raw hosting and call it from GUI via loadstring or require
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -47,8 +49,10 @@ module.SearchRadius = 16            -- radius (studs) to consider "spawned objec
 module.ScanInterval = 0.75          -- seconds between active scans when module is started
 module.UseClosestPartAsTarget = true -- if true, will teleport to nearest BasePart found; else teleport to declared coordinate
 module.HeightOffset = 15            -- studs to add to Y position (prevents drowning)
-module.SafeZoneRadius = 50          -- ⬅️ NEW: studs - player can move within this radius before re-teleport
-module.UseSmartReteleport = true    -- ⬅️ NEW: only re-teleport if player leaves safe zone
+module.SafeZoneRadius = 50          -- studs - player can move within this radius before re-teleport
+module.UseSmartReteleport = true    -- only re-teleport if player leaves safe zone
+module.RequireEventActive = true    -- ⬅️ NEW: only teleport if event is actually active/spawned
+module.WaitForEventTimeout = 300    -- ⬅️ NEW: max seconds to wait for event (5 minutes)
 
 -- =======================
 -- Internal state
@@ -56,7 +60,9 @@ module.UseSmartReteleport = true    -- ⬅️ NEW: only re-teleport if player le
 local running = false
 local currentEventName = nil
 local heartbeatConn = nil
-local lastTeleportPosition = nil    -- ⬅️ NEW: track last teleport position
+local lastTeleportPosition = nil
+local eventIsActive = false         -- ⬅️ NEW: tracks if event is currently spawned
+local lastEventCheckTime = 0        -- ⬅️ NEW: throttle event detection
 
 -- ================
 -- Utilities
@@ -71,13 +77,13 @@ local function getHRP()
     return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("HumanoidRootPart"))
 end
 
--- ⬅️ NEW: Apply height offset to position
+-- Apply height offset to position
 local function applyHeightOffset(pos)
     if not pos then return nil end
     return Vector3.new(pos.X, pos.Y + module.HeightOffset, pos.Z)
 end
 
--- ⬅️ NEW: Check if player is within safe zone
+-- Check if player is within safe zone
 local function isInSafeZone()
     if not module.UseSmartReteleport then
         return false -- always allow teleport if smart reteleport disabled
@@ -98,8 +104,6 @@ end
 
 -- find parts/models in workspace that are close to a Vector3 position
 local function findNearbyObject(centerPos, radius)
-    -- Simple, robust approach: scan workspace descendants for BasePart whose position is within radius.
-    -- This is heavier but reliable across games. Limit scanning to reasonable number of descendants.
     local bestPart = nil
     local bestDist = math.huge
 
@@ -124,7 +128,7 @@ local function findNearbyObject(centerPos, radius)
 
     -- fallback: full scan but break early after certain threshold to avoid big cost
     local checked = 0
-    local maxChecks = 2000 -- tuneable, avoid scanning entire huge workspace every tick
+    local maxChecks = 2000
     for _, inst in ipairs(Workspace:GetDescendants()) do
         if inst:IsA("BasePart") then
             checked = checked + 1
@@ -140,45 +144,66 @@ local function findNearbyObject(centerPos, radius)
     return bestPart
 end
 
--- Given an eventName, find the "active coordinate" in this server:
--- strategy:
--- 1) iterate declared coords for event (if any)
--- 2) for each declared coord, search workspace for nearby spawned parts/models (using radius)
--- 3) if found a part, return that part.Position (or part itself)
--- 4) if none found, return best fallback declared coord (closest to player)
-local function resolveActivePosition(eventName)
+-- ⬅️ NEW: Check if event is actually active/spawned in the world
+local function checkEventActive(eventName)
     local coords = module.Events[eventName]
     if not coords or #coords == 0 then
-        return nil -- no static coords to use
+        return false, nil -- no coords to check
     end
 
-    -- try to find spawned part near each declared coord
+    -- Check each coordinate for spawned objects
     for _, coord in ipairs(coords) do
         local part = findNearbyObject(coord, module.SearchRadius)
         if part then
-            -- Apply height offset to found part position
-            return applyHeightOffset(part.Position), part
+            -- Found a spawned object near coordinate = event is active!
+            return true, applyHeightOffset(part.Position)
         end
     end
 
-    -- fallback: return closest declared coord to player
-    local hrp = getHRP()
-    if hrp then
-        local best = nil
-        local minD = math.huge
-        for _, coord in ipairs(coords) do
-            local d = (hrp.Position - coord).Magnitude
-            if d < minD then
-                minD = d
-                best = coord
+    return false, nil -- no spawned objects found = event not active
+end
+
+-- Given an eventName, find the "active coordinate" in this server
+local function resolveActivePosition(eventName)
+    local coords = module.Events[eventName]
+    if not coords or #coords == 0 then
+        return nil, false -- no static coords to use
+    end
+
+    -- ⬅️ NEW: Check if event is actually active
+    local isActive, activePos = checkEventActive(eventName)
+    
+    if module.RequireEventActive and not isActive then
+        -- Event not spawned yet, don't return any position
+        return nil, false
+    end
+    
+    if isActive and activePos then
+        -- Event is active, return the position we found
+        return activePos, true
+    end
+
+    -- Fallback: return closest declared coord to player (only if RequireEventActive is disabled)
+    if not module.RequireEventActive then
+        local hrp = getHRP()
+        if hrp then
+            local best = nil
+            local minD = math.huge
+            for _, coord in ipairs(coords) do
+                local d = (hrp.Position - coord).Magnitude
+                if d < minD then
+                    minD = d
+                    best = coord
+                end
             end
+            return applyHeightOffset(best), false
         end
-        -- Apply height offset to fallback coord
-        return applyHeightOffset(best), nil
+        
+        -- last-resort: first coordinate with height offset
+        return applyHeightOffset(coords[1]), false
     end
-
-    -- last-resort: first coordinate with height offset
-    return applyHeightOffset(coords[1]), nil
+    
+    return nil, false
 end
 
 -- Teleport helper (safe)
@@ -193,7 +218,6 @@ local function doTeleportToPos(pos)
             pcall(function() char:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(pos) end)
         end
         
-        -- ⬅️ NEW: Update last teleport position
         lastTeleportPosition = pos
         return true
     end
@@ -203,21 +227,52 @@ end
 -- Exposed simple call: teleport once now to eventName (resolve active pos)
 function module.TeleportNow(eventName)
     if not eventName then return false end
-    local ok, posOrPart = pcall(function()
+    
+    local ok, result = pcall(function()
         return resolveActivePosition(eventName)
     end)
-    if not ok or not posOrPart then
+    
+    if not ok then
+        warn("⚠️ EventTeleport: Error resolving position:", result)
+        return false
+    end
+    
+    local pos, isActive = result, false
+    if type(result) == "table" then
+        pos, isActive = result[1], result[2]
+    end
+    
+    if not pos then
+        if module.RequireEventActive then
+            warn("⚠️ EventTeleport: Event not active yet, waiting...")
+        end
         return false
     end
 
-    -- resolveActivePosition returns (pos, part) ; pcall returned that.
-    local pos = posOrPart
-    if type(pos) == "userdata" and pos.ClassName == "Instance" then
-        -- unlikely because resolve returns Vector3 first; handle if swapped
-        pos = pos.Position
-    end
-
     return doTeleportToPos(pos)
+end
+
+-- ⬅️ NEW: Wait for event to become active before teleporting
+local function waitForEventActive(eventName, timeout)
+    local startTime = tick()
+    local checkInterval = 2 -- check every 2 seconds
+    
+    print("🔍 EventTeleport: Waiting for event to start...")
+    
+    while tick() - startTime < timeout do
+        local isActive, activePos = checkEventActive(eventName)
+        
+        if isActive and activePos then
+            print("✅ EventTeleport: Event detected! Teleporting...")
+            eventIsActive = true
+            return activePos
+        end
+        
+        task.wait(checkInterval)
+    end
+    
+    warn("⚠️ EventTeleport: Timeout waiting for event (", timeout, "seconds)")
+    return nil
 end
 
 -- Start auto-follow/teleport loop to chosen event
@@ -228,28 +283,47 @@ function module.Start(eventName)
 
     running = true
     currentEventName = eventName
-    lastTeleportPosition = nil -- ⬅️ NEW: Reset last position on start
+    lastTeleportPosition = nil
+    eventIsActive = false
 
-    -- heartbeat loop: every ScanInterval, try to resolve active pos and teleport
+    -- heartbeat loop
     heartbeatConn = RunService.Heartbeat:Connect(function(dt)
-        -- offtick logic: use a timer to avoid running every frame
+        -- placeholder for future use
     end)
 
-    -- We'll use a simple loop in task.spawn to avoid doing heavy work in Heartbeat directly
+    -- Main loop in separate thread
     task.spawn(function()
+        -- ⬅️ NEW: Wait for event to become active first
+        if module.RequireEventActive then
+            local initialPos = waitForEventActive(currentEventName, module.WaitForEventTimeout)
+            
+            if not initialPos then
+                warn("❌ EventTeleport: Event did not start within timeout, stopping...")
+                module.Stop()
+                return
+            end
+            
+            -- Event is active, do first teleport
+            doTeleportToPos(initialPos)
+        end
+        
+        -- Continue monitoring and re-teleporting
         while running do
-            -- ⬅️ NEW: Check if player is still in safe zone
+            -- Check if player is still in safe zone
             if not isInSafeZone() then
-                local ok, posOrPart = pcall(function()
-                    return resolveActivePosition(currentEventName)
-                end)
-
-                if ok and posOrPart then
-                    local pos = posOrPart
-                    if typeof(pos) == "Instance" then
-                        pos = pos.Position
-                    end
+                local pos, isActive = resolveActivePosition(currentEventName)
+                
+                if pos and isActive then
+                    eventIsActive = true
                     doTeleportToPos(pos)
+                elseif module.RequireEventActive and not isActive then
+                    -- Event ended or disappeared
+                    if eventIsActive then
+                        print("⚠️ EventTeleport: Event ended, stopping auto-teleport...")
+                        eventIsActive = false
+                        -- Optionally stop or just pause teleporting
+                        -- module.Stop()
+                    end
                 end
             end
 
@@ -263,7 +337,8 @@ end
 function module.Stop()
     running = false
     currentEventName = nil
-    lastTeleportPosition = nil -- ⬅️ NEW: Clear last position on stop
+    lastTeleportPosition = nil
+    eventIsActive = false
     if heartbeatConn then
         heartbeatConn:Disconnect()
         heartbeatConn = nil
@@ -293,16 +368,33 @@ function module.SetHeightOffset(offset)
     print("🎯 EventTeleport: Height offset set to", module.HeightOffset, "studs")
 end
 
--- ⬅️ NEW: Allow user to customize safe zone radius
+-- Allow user to customize safe zone radius
 function module.SetSafeZoneRadius(radius)
     module.SafeZoneRadius = radius or 50
     print("🎯 EventTeleport: Safe zone radius set to", module.SafeZoneRadius, "studs")
 end
 
--- ⬅️ NEW: Toggle smart re-teleport
+-- Toggle smart re-teleport
 function module.SetSmartReteleport(enabled)
     module.UseSmartReteleport = enabled
     print("🎯 EventTeleport: Smart re-teleport", enabled and "enabled" or "disabled")
+end
+
+-- ⬅️ NEW: Toggle require event active
+function module.SetRequireEventActive(enabled)
+    module.RequireEventActive = enabled
+    print("🎯 EventTeleport: Require event active", enabled and "enabled" or "disabled")
+end
+
+-- ⬅️ NEW: Set wait timeout
+function module.SetWaitTimeout(seconds)
+    module.WaitForEventTimeout = seconds or 300
+    print("🎯 EventTeleport: Wait timeout set to", module.WaitForEventTimeout, "seconds")
+end
+
+-- ⬅️ NEW: Check if event is currently active
+function module.IsEventActive()
+    return eventIsActive
 end
 
 return module
