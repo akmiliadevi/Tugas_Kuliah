@@ -1,83 +1,155 @@
--- ConfigSystem.lua - Dirty Flags + Debounced Auto-Save Version
+-- ConfigSystem.lua
+-- Manual Save/Load Configuration System for Lynx GUI
+-- FREE NOT FOR SALE
+
 local HttpService = game:GetService("HttpService")
 
 local ConfigSystem = {}
-ConfigSystem.Version = "2.0-DirtyFlags"
+ConfigSystem.Version = "1.1"
 
+-- ============================================
+-- CONFIG SETTINGS
+-- ============================================
 local CONFIG_FOLDER = "LynxGUI_Configs"
 local CONFIG_FILE = CONFIG_FOLDER .. "/lynx_config.json"
 
--- ✅ Auto-Save Settings
-local AUTO_SAVE_DELAY = 5 -- Delay sebelum auto-save (detik)
-local saveTimer = nil
-local isDirty = false
-
--- ✅ WHITELIST: Paths yang akan di-save saat minimize
-local SAVE_ON_MINIMIZE_PATHS = {
-    "InstantFishing",
-    "BlatantTester",
-    "BlatantV1",
-    "UltraBlatant",
-    "FastAutoPerfect",
-    "Support",
-    "AutoFavorite",
-    "SkinAnimation",
-    "Shop.AutoSellTimer",
-    "Shop.AutoBuyWeather",
-    "Webhook",
-    "Settings.AntiAFK",
-    "Settings.FPSBooster",
-    "Settings.DisableRendering",
-    "Settings.FPSLimit",
-    "Settings.HideStats",
-}
-
--- Default Config
+-- ============================================
+-- DEFAULT CONFIG STRUCTURE
+-- ============================================
 local DefaultConfig = {
-    InstantFishing = { Mode = "None", Enabled = false, FishingDelay = 1.30, CancelDelay = 0.19 },
-    BlatantTester = { Enabled = false, CompleteDelay = 0.5, CancelDelay = 0.1 },
-    BlatantV1 = { Enabled = false, CompleteDelay = 0.05, CancelDelay = 0.1 },
-    UltraBlatant = { Enabled = false, CompleteDelay = 0.05, CancelDelay = 0.1 },
-    FastAutoPerfect = { Enabled = false, FishingDelay = 0.05, CancelDelay = 0.01, TimeoutDelay = 0.8 },
+    -- Main Page - Auto Fishing
+    InstantFishing = {
+        Mode = "Fast", -- "Fast", "Perfect"
+        Enabled = false,
+        FishingDelay = 1.30,
+        CancelDelay = 0.19
+    },
+    
+    -- Blatant Tester
+    BlatantTester = {
+        Enabled = false,
+        CompleteDelay = 0.5,
+        CancelDelay = 0.1
+    },
+    
+    -- Blatant V1
+    BlatantV1 = {
+        Enabled = false,
+        CompleteDelay = 0.05,
+        CancelDelay = 0.1
+    },
+    
+    -- Ultra Blatant (Blatant V2)
+    UltraBlatant = {
+        Enabled = false,
+        CompleteDelay = 0.05,
+        CancelDelay = 0.1
+    },
+    
+    -- Fast Auto Fishing Perfect
+    FastAutoPerfect = {
+        Enabled = false,
+        FishingDelay = 0.05,
+        CancelDelay = 0.01,
+        TimeoutDelay = 0.8
+    },
+    
+    -- Support Features
     Support = {
-        NoFishingAnimation = false, LockPosition = false, AutoEquipRod = false,
-        DisableCutscenes = false, DisableObtainedNotif = false, DisableSkinEffect = false,
-        WalkOnWater = false, GoodPerfectionStable = false, PingFPSMonitor = false,
-        SkinAnimation = { Enabled = false, Current = "Eclipse" }
+        NoFishingAnimation = false,
+        PingFPSMonitor = false,
+        LockPosition = false,
+        AutoEquipRod = false,
+        DisableCutscenes = false,
+        DisableObtainedNotif = false,
+        DisableSkinEffect = false,
+        WalkOnWater = false,
+        GoodPerfectionStable = false,
+        SkinAnimation = {
+            Enabled = false,
+            Current = "Eclipse"
+        }
     },
-    Teleport = { SavedLocation = nil, LastEventSelected = nil, AutoTeleportEvent = false },
+    
+    -- Auto Favorite
+    AutoFavorite = {
+        EnabledTiers = {},
+        EnabledVariants = {}
+    },
+    
+    -- Teleport
+    Teleport = {
+        SavedLocation = nil,
+        LastEventSelected = nil,
+        AutoTeleportEvent = false
+    },
+    
+    -- Shop
     Shop = {
-        AutoSellTimer = { Enabled = false, Interval = 5 },
-        AutoBuyWeather = { Enabled = false, SelectedWeathers = {} }
+        AutoSellTimer = {
+            Enabled = false,
+            Interval = 5
+        },
+        AutoBuyWeather = {
+            Enabled = false,
+            SelectedWeathers = {}
+        }
     },
-    Webhook = { Enabled = false, URL = "", DiscordID = "", EnabledRarities = {} },
+    
+    -- Webhook
+    Webhook = {
+        Enabled = false,
+        URL = "",
+        DiscordID = "",
+        EnabledRarities = {}
+    },
+    
+    -- Camera View
     CameraView = {
         UnlimitedZoom = false,
-        Freecam = { Enabled = false, Speed = 50, Sensitivity = 0.3 }
+        Freecam = {
+            Enabled = false,
+            Speed = 50,
+            Sensitivity = 0.3
+        }
     },
+    
+    -- Settings
     Settings = {
-        AntiAFK = false, FPSBooster = false, DisableRendering = false, FPSLimit = 60,
-        HideStats = { Enabled = false, FakeName = "Guest", FakeLevel = "1" }
-    },
-    AutoFavorite = { EnabledTiers = {}, EnabledVariants = {} },
-    SkinAnimation = { Enabled = false, Current = "Eclipse" }
+        AntiAFK = false,
+        Sprint = false,
+        InfiniteJump = false,
+        FPSBooster = false,
+        DisableRendering = false,
+        FPSLimit = 60,
+        HideStats = {
+            Enabled = false,
+            FakeName = "Guest",
+            FakeLevel = "1"
+        }
+    }
 }
 
 local CurrentConfig = {}
-local lastSavedConfig = nil
 
 -- ============================================
 -- UTILITY FUNCTIONS
 -- ============================================
+
+-- Deep copy table
 local function DeepCopy(original)
-    if type(original) ~= "table" then return original end
     local copy = {}
     for k, v in pairs(original) do
-        copy[k] = type(v) == "table" and DeepCopy(v) or v
+        if type(v) == "table" then
+            copy[k] = DeepCopy(v)
+        else
+            copy[k] = v
+        end
     end
     return copy
 end
 
+-- Merge tables (updates existing values, adds new ones)
 local function MergeTables(target, source)
     for k, v in pairs(source) do
         if type(v) == "table" and type(target[k]) == "table" then
@@ -88,46 +160,116 @@ local function MergeTables(target, source)
     end
 end
 
+-- ============================================
+-- FOLDER MANAGEMENT
+-- ============================================
 local function EnsureFolderExists()
     if not isfolder(CONFIG_FOLDER) then
+        print("📁 [ConfigSystem] Creating config folder:", CONFIG_FOLDER)
         makefolder(CONFIG_FOLDER)
+        print("✅ [ConfigSystem] Folder created!")
     end
 end
 
-local function IsPathWhitelisted(path)
-    for _, whitelistedPath in ipairs(SAVE_ON_MINIMIZE_PATHS) do
-        if path:sub(1, #whitelistedPath) == whitelistedPath then
-            return true
+-- ============================================
+-- SAVE CONFIG
+-- ============================================
+function ConfigSystem.Save()
+    print("💾 [ConfigSystem] Saving configuration...")
+    
+    local success, err = pcall(function()
+        EnsureFolderExists()
+        
+        local jsonData = HttpService:JSONEncode(CurrentConfig)
+        writefile(CONFIG_FILE, jsonData)
+    end)
+    
+    if success then
+        print("✅ [ConfigSystem] Configuration saved successfully!")
+        return true, "Config saved!"
+    else
+        warn("❌ [ConfigSystem] Save failed:", err)
+        return false, "Save failed: " .. tostring(err)
+    end
+end
+
+-- ============================================
+-- LOAD CONFIG
+-- ============================================
+function ConfigSystem.Load()
+    print("🔄 [ConfigSystem] Loading configuration...")
+    
+    EnsureFolderExists()
+    
+    -- Start with default config
+    CurrentConfig = DeepCopy(DefaultConfig)
+    
+    if isfile(CONFIG_FILE) then
+        print("📁 [ConfigSystem] Config file found!")
+        
+        local success, result = pcall(function()
+            local jsonData = readfile(CONFIG_FILE)
+            local loadedConfig = HttpService:JSONDecode(jsonData)
+            
+            -- Merge loaded config with defaults (preserves new settings)
+            MergeTables(CurrentConfig, loadedConfig)
+        end)
+        
+        if success then
+            print("✅ [ConfigSystem] Configuration loaded successfully!")
+            return true, CurrentConfig
+        else
+            warn("❌ [ConfigSystem] Load failed:", result)
+            warn("⚠️ [ConfigSystem] Using default configuration")
+            return false, CurrentConfig
         end
+    else
+        print("⚠️ [ConfigSystem] No saved config found, using defaults")
+        return false, CurrentConfig
     end
-    return false
 end
 
-local function GetValueFromPath(tbl, path)
+-- ============================================
+-- GET/SET FUNCTIONS
+-- ============================================
+
+-- Get entire config
+function ConfigSystem.GetConfig()
+    return CurrentConfig
+end
+
+-- Get specific value with default fallback
+function ConfigSystem.Get(path, defaultValue)
     local keys = {}
     for key in string.gmatch(path, "[^.]+") do
         table.insert(keys, key)
     end
     
-    local value = tbl
+    local value = CurrentConfig
     for _, key in ipairs(keys) do
         if type(value) == "table" then
             value = value[key]
         else
-            return nil
+            return defaultValue
         end
+    end
+    
+    -- If value is nil, return default
+    if value == nil then
+        return defaultValue
     end
     
     return value
 end
 
-local function SetValueInPath(tbl, path, value)
+-- Set specific value
+function ConfigSystem.Set(path, value)
     local keys = {}
     for key in string.gmatch(path, "[^.]+") do
         table.insert(keys, key)
     end
     
-    local target = tbl
+    local target = CurrentConfig
     for i = 1, #keys - 1 do
         local key = keys[i]
         if type(target[key]) ~= "table" then
@@ -140,204 +282,58 @@ local function SetValueInPath(tbl, path, value)
 end
 
 -- ============================================
--- CORE SAVE FUNCTION (Real Save)
+-- PRINT CONFIG STATUS
 -- ============================================
-local function RealSave(selectiveOnly)
-    local success, err = pcall(function()
-        EnsureFolderExists()
-        
-        local configToSave
-        
-        if selectiveOnly then
-            -- Load existing config
-            local existingConfig = DeepCopy(DefaultConfig)
-            if isfile(CONFIG_FILE) then
-                local jsonData = readfile(CONFIG_FILE)
-                local loadedConfig = HttpService:JSONDecode(jsonData)
-                MergeTables(existingConfig, loadedConfig)
-            end
-            
-            -- Update ONLY whitelisted paths
-            for _, path in ipairs(SAVE_ON_MINIMIZE_PATHS) do
-                local currentValue = GetValueFromPath(CurrentConfig, path)
-                if currentValue ~= nil then
-                    SetValueInPath(existingConfig, path, DeepCopy(currentValue))
-                end
-            end
-            
-            configToSave = existingConfig
-        else
-            -- Save ALL config
-            configToSave = CurrentConfig
-        end
-        
-        local jsonData = HttpService:JSONEncode(configToSave)
-        writefile(CONFIG_FILE, jsonData)
-    end)
-    
-    if success then
-        lastSavedConfig = DeepCopy(CurrentConfig)
-        isDirty = false
-        return true, "Config saved!"
-    else
-        return false, "Save failed: " .. tostring(err)
-    end
+function ConfigSystem.PrintStatus()
+    print("=== LYNX GUI CONFIG STATUS ===")
+    print("📦 Version:", ConfigSystem.Version)
+    print("📁 Folder:", CONFIG_FOLDER)
+    print("📄 File:", CONFIG_FILE)
+    print("✅ Config file exists:", isfile(CONFIG_FILE) and "YES" or "NO")
+    print("📊 Current config loaded:", CurrentConfig ~= nil and "YES" or "NO")
+    print("==============================")
 end
 
 -- ============================================
--- DEBOUNCED AUTO-SAVE SCHEDULER
+-- RESET CONFIG
 -- ============================================
-local function ScheduleSave(selectiveOnly)
-    -- Cancel timer jika ada perubahan baru
-    if saveTimer then
-        pcall(function() task.cancel(saveTimer) end)
-        saveTimer = nil
-    end
-    
-    -- Buat timer baru
-    saveTimer = task.delay(AUTO_SAVE_DELAY, function()
-        if isDirty then
-            RealSave(selectiveOnly)
-            print("[ConfigSystem] Auto-saved after " .. AUTO_SAVE_DELAY .. "s delay")
-        end
-        saveTimer = nil
-    end)
-end
-
--- ============================================
--- PUBLIC API
--- ============================================
-
--- Set value dengan auto-save scheduling
-function ConfigSystem.Set(path, value)
-    local currentValue = GetValueFromPath(CurrentConfig, path)
-    
-    -- Cek apakah value benar-benar berubah
-    local currentJson = HttpService:JSONEncode(currentValue or {})
-    local newJson = HttpService:JSONEncode(value or {})
-    
-    if currentJson ~= newJson then
-        SetValueInPath(CurrentConfig, path, value)
-        isDirty = true
-        
-        -- Schedule auto-save (selective mode)
-        ScheduleSave(true)
-    end
-end
-
--- Get value
-function ConfigSystem.Get(path)
-    return GetValueFromPath(CurrentConfig, path)
-end
-
--- Get entire config
-function ConfigSystem.GetConfig()
-    return CurrentConfig
-end
-
--- Force save immediately (untuk manual save button)
-function ConfigSystem.Save()
-    if saveTimer then
-        pcall(function() task.cancel(saveTimer) end)
-        saveTimer = nil
-    end
-    
-    return RealSave(false)
-end
-
--- Save ONLY whitelisted paths immediately (untuk minimize)
-function ConfigSystem.SaveSelective()
-    if saveTimer then
-        pcall(function() task.cancel(saveTimer) end)
-        saveTimer = nil
-    end
-    
-    return RealSave(true)
-end
-
--- Load config
-function ConfigSystem.Load()
-    EnsureFolderExists()
-    CurrentConfig = DeepCopy(DefaultConfig)
-    
-    if isfile(CONFIG_FILE) then
-        local success, result = pcall(function()
-            local jsonData = readfile(CONFIG_FILE)
-            local loadedConfig = HttpService:JSONDecode(jsonData)
-            MergeTables(CurrentConfig, loadedConfig)
-        end)
-        
-        if success then
-            lastSavedConfig = DeepCopy(CurrentConfig)
-            isDirty = false
-            return true, CurrentConfig
-        else
-            return false, CurrentConfig
-        end
-    else
-        isDirty = false
-        return false, CurrentConfig
-    end
-end
-
--- Check if there are unsaved changes
-function ConfigSystem.HasUnsavedChanges()
-    return isDirty
-end
-
--- Mark as saved (reset dirty flag)
-function ConfigSystem.MarkAsSaved()
-    isDirty = false
-    lastSavedConfig = DeepCopy(CurrentConfig)
-end
-
--- Reset to default
 function ConfigSystem.Reset()
+    print("🔄 [ConfigSystem] Resetting to default configuration...")
     CurrentConfig = DeepCopy(DefaultConfig)
-    isDirty = true
-    return ConfigSystem.Save()
+    
+    local success, message = ConfigSystem.Save()
+    if success then
+        print("✅ [ConfigSystem] Configuration reset complete!")
+    end
+    
+    return success, message
 end
 
--- Delete config file
+-- ============================================
+-- DELETE CONFIG FILE
+-- ============================================
 function ConfigSystem.Delete()
     if isfile(CONFIG_FILE) then
         delfile(CONFIG_FILE)
-        isDirty = false
-        lastSavedConfig = nil
+        print("🗑️ [ConfigSystem] Config file deleted!")
+        CurrentConfig = DeepCopy(DefaultConfig)
         return true
     else
+        print("⚠️ [ConfigSystem] No config file to delete")
         return false
     end
 end
 
--- Cleanup (cancel pending saves)
-function ConfigSystem.Cleanup()
-    if saveTimer then
-        pcall(function() task.cancel(saveTimer) end)
-        saveTimer = nil
-    end
-    
-    -- Force save if dirty
-    if isDirty then
-        RealSave(true)
-    end
-    
-    lastSavedConfig = nil
-end
-
--- Set auto-save delay
-function ConfigSystem.SetAutoSaveDelay(seconds)
-    AUTO_SAVE_DELAY = math.max(1, seconds)
-end
-
--- Get auto-save delay
-function ConfigSystem.GetAutoSaveDelay()
-    return AUTO_SAVE_DELAY
-end
-
 -- ============================================
--- INITIALIZATION
+-- CHECK IF CONFIG FILE EXISTS
 -- ============================================
-ConfigSystem.Load()
+function ConfigSystem.Exists()
+    return isfile(CONFIG_FILE)
+end
+
+
+-- ✅ Initialize with default config only, DO NOT auto-load
+CurrentConfig = DeepCopy(DefaultConfig)
+print("✅ [ConfigSystem] Default configuration initialized")
 
 return ConfigSystem
