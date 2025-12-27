@@ -1,7 +1,3 @@
--- EventTeleportDynamic.lua
--- Single-file module: event coordinates + dynamic detection + teleport functions
--- Put this file on your raw hosting and call it from GUI via loadstring or require
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -48,6 +44,7 @@ module.Events = {
 module.SearchRadius = 16            -- radius (studs) to consider "spawned object at coord"
 module.ScanInterval = 0.75          -- seconds between active scans when module is started
 module.UseClosestPartAsTarget = true -- if true, will teleport to nearest BasePart found; else teleport to declared coordinate
+module.HeightOffset = 15            -- ⬅️ NEW: studs to add to Y position (prevents drowning)
 
 -- =======================
 -- Internal state
@@ -67,6 +64,12 @@ end
 local function getHRP()
     local char = LocalPlayer.Character
     return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("HumanoidRootPart"))
+end
+
+-- ⬅️ NEW: Apply height offset to position
+local function applyHeightOffset(pos)
+    if not pos then return nil end
+    return Vector3.new(pos.X, pos.Y + module.HeightOffset, pos.Z)
 end
 
 -- find parts/models in workspace that are close to a Vector3 position
@@ -129,8 +132,8 @@ local function resolveActivePosition(eventName)
     for _, coord in ipairs(coords) do
         local part = findNearbyObject(coord, module.SearchRadius)
         if part then
-            -- if found, return part's CFrame.Position (more accurate than declared coord)
-            return part.Position, part
+            -- ⬅️ CHANGED: Apply height offset to found part position
+            return applyHeightOffset(part.Position), part
         end
     end
 
@@ -146,11 +149,13 @@ local function resolveActivePosition(eventName)
                 best = coord
             end
         end
-        return best, nil
+        -- ⬅️ CHANGED: Apply height offset to fallback coord
+        return applyHeightOffset(best), nil
     end
 
-    -- last-resort: first coordinate
-    return coords[1], nil
+    -- last-resort: first coordinate with height offset
+    -- ⬅️ CHANGED: Apply height offset
+    return applyHeightOffset(coords[1]), nil
 end
 
 -- Teleport helper (safe)
@@ -249,6 +254,12 @@ end
 function module.HasCoords(eventName)
     local v = module.Events[eventName]
     return v ~= nil and #v > 0
+end
+
+-- ⬅️ NEW: Allow user to customize height offset
+function module.SetHeightOffset(offset)
+    module.HeightOffset = offset or 15
+    print("🎯 EventTeleport: Height offset set to", module.HeightOffset, "studs")
 end
 
 return module
